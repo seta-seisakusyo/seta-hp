@@ -6,6 +6,9 @@ import {
   handleApiError,
   isErrorResponse,
   parseEditorJson,
+  sanitizeNullableText,
+  sanitizeOptionalNullableText,
+  sanitizeOptionalText,
   sanitizeTags,
 } from "@/lib/api-utils";
 import { ProductCreateSchema, ProductUpdateSchema } from "@/lib/validation";
@@ -85,7 +88,7 @@ export async function POST(req: NextRequest) {
         stock: stock || "在庫あり",
         isPublished: isPublished !== false,
         isHeroImage: isHeroImage === true,
-        purchaseUrl: purchaseUrl ? xss(purchaseUrl) : null,
+        purchaseUrl: sanitizeNullableText(purchaseUrl),
       },
       select: { id: true },
     });
@@ -130,8 +133,8 @@ export async function PUT(req: NextRequest) {
     await prisma.product.update({
       where: { id },
       data: {
-        name: name ? xss(name) : undefined,
-        description: description ? xss(description) : undefined,
+        name: sanitizeOptionalText(name),
+        description: sanitizeOptionalText(description),
         price,
         category,
         tags: tags !== undefined ? sanitizeTags(tags) : undefined,
@@ -139,7 +142,7 @@ export async function PUT(req: NextRequest) {
         stock,
         isPublished,
         isHeroImage: isHeroImage !== undefined ? isHeroImage === true : undefined,
-        purchaseUrl: purchaseUrl !== undefined ? (purchaseUrl ? xss(purchaseUrl) : null) : undefined,
+        purchaseUrl: sanitizeOptionalNullableText(purchaseUrl),
       },
       select: { id: true },
     });

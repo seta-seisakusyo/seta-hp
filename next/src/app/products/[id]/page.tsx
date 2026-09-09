@@ -31,6 +31,15 @@ const getProduct = cache(async (id: number) => {
   return prisma.product.findUnique({ where: { id } });
 });
 
+// 非公開商品はページ本体もメタデータも同条件で弾く（title/description/OG の漏洩防止）。
+// getProduct の React cache() 越しに呼ぶため、metadata とページ本体でクエリは1回のまま。
+async function getPublishedProduct(rawId: string) {
+  const productId = parseInt(rawId, 10);
+  if (isNaN(productId)) return null;
+  const product = await getProduct(productId);
+  return product && product.isPublished ? product : null;
+}
+
 async function getRelatedProducts(category: string, excludeId: number) {
   const prisma = getPrismaClient();
   const products = await prisma.product.findMany({
@@ -49,23 +58,18 @@ async function getRelatedProducts(category: string, excludeId: number) {
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { id } = await params;
-  const productId = parseInt(id, 10);
-  if (isNaN(productId)) return { title: "商品が見つかりません" };
-
-  const product = await getProduct(productId);
-  // 非公開商品はページ本体が 404 になるため、メタデータでも同条件で弾く
-  // （非公開商品の title/description/OG が head に漏れないようにする）
-  if (!product || !product.isPublished) return { title: "商品が見つかりません" };
+  const product = await getPublishedProduct(id);
+  if (!product) return { title: "商品が見つかりません" };
 
   return {
     title: product.name,
     description: product.description,
-    alternates: { canonical: `/products/${productId}` },
+    alternates: { canonical: `/products/${product.id}` },
     openGraph: {
       type: "website",
       title: product.name,
       description: product.description,
-      url: `/products/${productId}`,
+      url: `/products/${product.id}`,
       images: [getPrimaryProductImage(product.images) ?? "/og-image.png"],
     },
   };
@@ -73,11 +77,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params;
-  const productId = parseInt(id, 10);
-  if (isNaN(productId)) notFound();
-
-  const product = await getProduct(productId);
-  if (!product || !product.isPublished) notFound();
+  const product = await getPublishedProduct(id);
+  if (!product) notFound();
 
   const relatedProducts = await getRelatedProducts(product.category, product.id);
 

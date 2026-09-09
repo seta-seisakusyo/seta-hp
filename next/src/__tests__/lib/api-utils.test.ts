@@ -6,6 +6,9 @@ import {
   handleApiError,
   isErrorResponse,
   parseJsonWithSchema,
+  sanitizeNullableText,
+  sanitizeOptionalNullableText,
+  sanitizeOptionalText,
 } from "@/lib/api-utils";
 import { RegistrationSchema } from "@/lib/validation";
 
@@ -22,6 +25,41 @@ describe("parseJsonWithSchema", () => {
       expect(result.status).toBe(400);
       expect(await result.json()).toEqual({ error: "リクエストボディが不正です" });
     }
+  });
+});
+
+describe("テキストサニタイズ", () => {
+  describe("sanitizeOptionalText", () => {
+    it.each([
+      ["abc", "abc"],
+      ["", undefined],
+      [null, undefined],
+      [undefined, undefined],
+    ])("%j を %j に変換する", (value, expected) => {
+      expect(sanitizeOptionalText(value as string | undefined)).toBe(expected);
+    });
+  });
+
+  describe("sanitizeNullableText", () => {
+    it.each([
+      ["abc", "abc"],
+      ["", null],
+      [null, null],
+      [undefined, null],
+    ])("%j を %j に変換する", (value, expected) => {
+      expect(sanitizeNullableText(value)).toBe(expected);
+    });
+  });
+
+  describe("sanitizeOptionalNullableText", () => {
+    it.each([
+      ["abc", "abc"],
+      ["", null],
+      [null, null],
+      [undefined, undefined],
+    ])("%j を %j に変換する", (value, expected) => {
+      expect(sanitizeOptionalNullableText(value)).toBe(expected);
+    });
   });
 });
 
