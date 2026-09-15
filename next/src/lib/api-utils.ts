@@ -109,6 +109,26 @@ export function sanitizeTags(tags: unknown): string {
   return xss(typeof tags === "string" ? tags : "");
 }
 
+/** 任意テキスト: 値があればサニタイズ、なければ undefined（＝更新しない）。 */
+export function sanitizeOptionalText(value: string | undefined): string | undefined {
+  return value ? xss(value) : undefined;
+}
+
+/** null 許容テキスト（作成時）: 空なら null を保存する。 */
+export function sanitizeNullableText(value: string | null | undefined): string | null {
+  return value ? xss(value) : null;
+}
+
+/**
+ * null 許容テキスト（更新時）:
+ * undefined = キー未送信 → 列を更新しない / null・空文字 = 明示的なクリア → null を保存。
+ */
+export function sanitizeOptionalNullableText(
+  value: string | null | undefined
+): string | null | undefined {
+  return value !== undefined ? (value ? xss(value) : null) : undefined;
+}
+
 /**
  * API ルート共通の catch ハンドラ。
  * - Prisma P2025（更新・削除対象なし） → 404

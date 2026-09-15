@@ -1,6 +1,6 @@
 import "server-only";
 
-export interface RecaptchaVerifyResult {
+interface RecaptchaVerifyResult {
   success: boolean;
   // 失敗時にAPIが返すべきHTTPステータス（成功時は200）
   status: number;

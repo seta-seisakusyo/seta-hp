@@ -5,6 +5,8 @@ import {
   handleApiError,
   isErrorResponse,
   parseEditorJson,
+  sanitizeNullableText,
+  sanitizeOptionalNullableText,
 } from "@/lib/api-utils";
 import {
   NewsCreateSchema,
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
         title: xss(title),
         contents: sanitizeNewsContents(contents),
         date,
-        url: url ? xss(url) : null,
+        url: sanitizeNullableText(url),
       },
       select: { id: true },
     });
@@ -79,7 +81,7 @@ export async function PUT(req: NextRequest) {
         title: title ? xss(title) : undefined,
         contents: contents !== undefined ? sanitizeNewsContents(contents) : undefined,
         date,
-        url: url !== undefined ? (url ? xss(url) : null) : undefined,
+        url: sanitizeOptionalNullableText(url),
       },
       select: { id: true },
     });

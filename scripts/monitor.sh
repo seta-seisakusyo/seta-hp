@@ -28,6 +28,9 @@ DESIGNER_ENV_FILE="${DESIGNER_ENV_FILE:-}"
 DESIGNER_COMPOSE_FILE="${DESIGNER_COMPOSE_FILE:-}"
 DESIGNER_SERVICES="${MONITOR_DESIGNER_SERVICES:-}"
 
+# shellcheck source=scripts/lib/designer-compose.sh
+. "$SCRIPT_DIR/lib/designer-compose.sh"
+
 problems=""
 add() { problems+="- $1"$'\n'; }
 
@@ -45,28 +48,6 @@ check_container() {
   esac
   hc="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$ref" 2>/dev/null)"
   [ "$hc" = "unhealthy" ] && add "コンテナ $label が unhealthy"
-}
-
-configure_designer_compose() {
-  if [ -z "$DESIGNER_ENV_FILE" ]; then
-    if [ -f "$DESIGNER_PROJECT_DIR/.env.prod" ]; then
-      DESIGNER_ENV_FILE="$DESIGNER_PROJECT_DIR/.env.prod"
-    else
-      DESIGNER_ENV_FILE="$DESIGNER_PROJECT_DIR/.env"
-    fi
-  fi
-  if [ -z "$DESIGNER_COMPOSE_FILE" ]; then
-    if [ "$(basename "$DESIGNER_ENV_FILE")" = ".env.prod" ] && [ -f "$DESIGNER_PROJECT_DIR/docker-compose.prod.yml" ]; then
-      DESIGNER_COMPOSE_FILE="$DESIGNER_PROJECT_DIR/docker-compose.prod.yml"
-    else
-      DESIGNER_COMPOSE_FILE="$DESIGNER_PROJECT_DIR/docker-compose.yml"
-    fi
-  fi
-}
-
-designer_compose() {
-  docker compose --project-directory "$DESIGNER_PROJECT_DIR" --env-file "$DESIGNER_ENV_FILE" \
-    -f "$DESIGNER_COMPOSE_FILE" "$@"
 }
 
 # --- HPコンテナ稼働・health ---

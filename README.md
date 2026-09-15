@@ -385,9 +385,10 @@ App RouterのMetadata Routeでリクエスト時に生成する。
 | ヘッダー | 効果 |
 |---------|------|
 | `Strict-Transport-Security` | HTTPS 強制（HSTS） |
+| `Content-Security-Policy` | スクリプト/スタイル等の読み込み元制限 |
+| `X-DNS-Prefetch-Control` | DNS プリフェッチ制御 |
 | `X-Frame-Options` | クリックジャッキング防止 |
 | `X-Content-Type-Options` | MIME スニッフィング防止 |
-| `X-XSS-Protection` | XSS 攻撃防止 |
 | `Referrer-Policy` | リファラー情報制限 |
 | `Permissions-Policy` | ブラウザ機能制限（カメラ, マイク, 位置情報） |
 

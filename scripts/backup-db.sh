@@ -20,6 +20,9 @@ DESIGNER_ENV_FILE="${DESIGNER_ENV_FILE:-}"
 DESIGNER_COMPOSE_FILE="${DESIGNER_COMPOSE_FILE:-}"
 DESIGNER_DB_SERVICE="${DESIGNER_DB_SERVICE:-}"
 
+# shellcheck source=scripts/lib/designer-compose.sh
+. "$SCRIPT_DIR/lib/designer-compose.sh"
+
 if ! [[ "$RETENTION_DAYS" =~ ^[0-9]+$ && "$MIN_BACKUP_COUNT" =~ ^[0-9]+$ ]]; then
   echo "RETENTION_DAYS と MIN_BACKUP_COUNT は0以上の整数で指定してください。" >&2
   exit 1
@@ -50,29 +53,6 @@ echo "=========================================="
     exit 1
   fi
 ) || _fail=1
-
-configure_designer_compose() {
-  if [ -z "$DESIGNER_ENV_FILE" ]; then
-    if [ -f "$DESIGNER_PROJECT_DIR/.env.prod" ]; then
-      DESIGNER_ENV_FILE="$DESIGNER_PROJECT_DIR/.env.prod"
-    else
-      DESIGNER_ENV_FILE="$DESIGNER_PROJECT_DIR/.env"
-    fi
-  fi
-
-  if [ -z "$DESIGNER_COMPOSE_FILE" ]; then
-    if [ "$(basename "$DESIGNER_ENV_FILE")" = ".env.prod" ] && [ -f "$DESIGNER_PROJECT_DIR/docker-compose.prod.yml" ]; then
-      DESIGNER_COMPOSE_FILE="$DESIGNER_PROJECT_DIR/docker-compose.prod.yml"
-    else
-      DESIGNER_COMPOSE_FILE="$DESIGNER_PROJECT_DIR/docker-compose.yml"
-    fi
-  fi
-}
-
-designer_compose() {
-  docker compose --project-directory "$DESIGNER_PROJECT_DIR" --env-file "$DESIGNER_ENV_FILE" \
-    -f "$DESIGNER_COMPOSE_FILE" "$@"
-}
 
 # --- Designer DB ---
 if [ "$BACKUP_DESIGNER" = "0" ]; then
