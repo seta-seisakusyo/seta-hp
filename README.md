@@ -414,6 +414,22 @@ migration失敗時は、新schemaと旧Prisma Clientの非互換を避けるた�
 
 GitHub Actions の `Deploy_Production` を `workflow_dispatch` で実行してください。`docker compose pull && docker compose up -d` の直接実行は、migration・Nginx設定検証・設定再生成を迂回するため運用手順として使用しません。
 
+### 期限のある資格情報
+
+`GH_PAT`（本番サーバーが ghcr.io から pull するためのトークン）には**有効期限があります**。
+切れるとデプロイの `docker login` が次のように失敗します。
+
+```
+Error response from daemon: Get "https://ghcr.io/v2/": denied: denied
+```
+
+サイトは稼働し続けるため運用中は気づけず、**次にデプロイしようとした時に初めて発覚します**。
+更新は `gh secret set GH_PAT -R seta-seisakusyo/seta-hp`（必要スコープは `read:packages`）。
+再発行の手間を避けたい場合は、有効期限を長め（または無期限）に設定してください。
+
+なおビルドとpushは `GITHUB_TOKEN`（自動発行）を使うため、`GH_PAT` が切れても
+`ci` と `build-and-push` は成功します。失敗するのは `deploy` だけです。
+
 ## 運用スクリプト
 
 | スクリプト | 説明 |
