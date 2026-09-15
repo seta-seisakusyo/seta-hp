@@ -47,6 +47,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Reject destructive schema sync in startup commands
+        run: |
+          if grep -n "prisma db push" docker-compose*.yml next/Dockerfile next/scripts/*.sh scripts/*.sh scripts/lib/*.sh; then
+            echo "ERROR: prisma db push must not be used in container startup or operational scripts."
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

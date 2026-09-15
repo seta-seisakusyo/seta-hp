@@ -42,6 +42,7 @@ seta-hp/
 │   ├── prisma/              # Prismaスキーマ & シード
 │   └── public/              # 静的ファイル
 ├── docker-compose.yml          # 本番環境（ベース）
+├── docker-compose.override.yml # ローカル開発用（自動読込、port 3001）
 ├── docker-compose.local.yml    # ローカルビルド検証用
 └── nginx/                      # Nginx設定
 ```
@@ -50,6 +51,9 @@ seta-hp/
 
 ```bash
 # Docker開発環境の起動
+docker compose up --build
+
+# standaloneイメージのローカルビルド検証
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 # 個別コマンド (nextディレクトリで実行)

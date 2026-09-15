@@ -45,11 +45,11 @@ cp .env.example .env
 cp next/.env.example next/.env
 # 各.envファイルを編集して必要な値を設定
 
-# 3. Docker環境を起動（ローカルビルド）
-docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+# 3. Docker開発環境を起動
+docker compose up --build
 
 # 4. ブラウザでアクセス
-# http://127.0.0.1:2999
+# http://127.0.0.1:3001
 ```
 
 ### ローカル開発（Docker なし）
@@ -66,10 +66,22 @@ yarn dev              # http://localhost:3000
 ### 停止
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.local.yml down
+docker compose down
 ```
 
 ## Docker環境の構成
+
+### ローカル開発環境（docker-compose.yml + docker-compose.override.yml）
+
+| サービス | コンテナ名 | ポート | 説明 |
+|---------|-----------|--------|------|
+| next | next_app | 3001:3000 | Next.js開発サーバー（ホットリロード） |
+| mysql | mysql_db | 3306 | MySQL 8.0 データベース |
+| nginx | nginx_proxy | 80, 443 | リバースプロキシ |
+
+`docker compose up` は起動時に `prisma migrate deploy` を実行します。
+データ損失を強制し得る `prisma db push` はコンテナ起動処理に使用しません。
+ポートや公開URLはルート `.env` の `DEV_PORT` / `DEV_NEXTAUTH_URL` で変更できます。
 
 ### ローカルビルド環境（docker-compose.yml + docker-compose.local.yml）
 
@@ -100,6 +112,7 @@ Docker Composeが展開する値はルートの `.env.example` を `.env` に、
 |--------|------|
 | `IMAGE_TAG` | デプロイするコンテナイメージのタグ |
 | `MYSQL_ROOT_PASSWORD` / `MYSQL_DATABASE` / `MYSQL_USER` / `MYSQL_PASSWORD` | MySQL設定 |
+| `DEV_BIND_ADDRESS` / `DEV_PORT` / `DEV_NEXTAUTH_URL` | ローカルDocker開発環境の待受アドレス・ポート・認証URL |
 | `NEXTAUTH_URL` | ComposeからNext.jsへ渡す公開URL |
 | `SERVER_NAME` / `OLD_SERVER_NAME` | 現行・旧ドメイン |
 | `PROXY_SSO_SECRET` | Designer SSOの共有秘密 |
@@ -128,11 +141,14 @@ Docker Composeが展開する値はルートの `.env.example` を `.env` に、
 ## 開発コマンド
 
 ```bash
-# Docker 経由
-docker compose -f docker-compose.yml -f docker-compose.local.yml up --build  # 起動
-docker compose -f docker-compose.yml -f docker-compose.local.yml down        # 停止
-docker compose -f docker-compose.yml -f docker-compose.local.yml logs -f next # ログ
-docker compose -f docker-compose.yml -f docker-compose.local.yml exec next sh # シェル
+# Docker開発環境（ホットリロード、http://127.0.0.1:3001）
+docker compose up --build  # 起動
+docker compose down        # 停止
+docker compose logs -f next
+docker compose exec next sh
+
+# standaloneイメージのローカルビルド検証（http://127.0.0.1:2999）
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 # ローカル（next/ ディレクトリで実行）
 cd next
