@@ -1,6 +1,6 @@
 #!/bin/bash
 # 自己ホスト型 監視＆アラート
-# - コンテナ稼働/health、サイト到達(end-to-end)、ディスク、メモリをチェック
+# - コンテナ稼働/health、サイト到達(end-to-end)、TLS証明書の残日数、ディスク、メモリをチェック
 # - 異常時に管理者へメール通知（HPの SMTP=next/.env を利用、python3 smtplib）
 # - 同一問題の連続通知はクールダウンで抑止
 # - コンテナの自動復旧は各 compose の restart:unless-stopped に委ねる
@@ -18,6 +18,8 @@ MEM_MIN_MB="${MONITOR_MEM_MIN_MB:-120}"             # 空きメモリの警告�
 HEALTH_SKIP="${MONITOR_HEALTH_SKIP:-nginx_proxy}"   # サイト到達で別途判定するコンテナ
 EXPECTED_CONTAINERS="${MONITOR_CONTAINERS:-next_app nginx_proxy mysql_db}"
 SITE_URL="${MONITOR_SITE_URL:-https://kaza-love.com/api/health}"
+CERT_HOST="${MONITOR_CERT_HOST:-kaza-love.com}"      # TLS証明書を実測する対象ホスト
+CERT_MIN_DAYS="${MONITOR_CERT_MIN_DAYS:-20}"         # 証明書残日数の警告閾値(日)。0で無効
 MONITOR_DESIGNER="${MONITOR_DESIGNER:-1}"
 MONITOR_SEND_EMAIL="${MONITOR_SEND_EMAIL:-1}"
 DESIGNER_URL="${MONITOR_DESIGNER_URL:-https://designer.kaza-love.com/}"
@@ -25,6 +27,9 @@ DESIGNER_PROJECT_DIR="${DESIGNER_PROJECT_DIR:-$(dirname "$PROJECT_DIR")/display_
 DESIGNER_ENV_FILE="${DESIGNER_ENV_FILE:-}"
 DESIGNER_COMPOSE_FILE="${DESIGNER_COMPOSE_FILE:-}"
 DESIGNER_SERVICES="${MONITOR_DESIGNER_SERVICES:-}"
+
+# shellcheck source=scripts/lib/designer-compose.sh
+. "$SCRIPT_DIR/lib/designer-compose.sh"
 
 problems=""
 add() { problems+="- $1"$'\n'; }
@@ -43,28 +48,6 @@ check_container() {
   esac
   hc="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$ref" 2>/dev/null)"
   [ "$hc" = "unhealthy" ] && add "コンテナ $label が unhealthy"
-}
-
-configure_designer_compose() {
-  if [ -z "$DESIGNER_ENV_FILE" ]; then
-    if [ -f "$DESIGNER_PROJECT_DIR/.env.prod" ]; then
-      DESIGNER_ENV_FILE="$DESIGNER_PROJECT_DIR/.env.prod"
-    else
-      DESIGNER_ENV_FILE="$DESIGNER_PROJECT_DIR/.env"
-    fi
-  fi
-  if [ -z "$DESIGNER_COMPOSE_FILE" ]; then
-    if [ "$(basename "$DESIGNER_ENV_FILE")" = ".env.prod" ] && [ -f "$DESIGNER_PROJECT_DIR/docker-compose.prod.yml" ]; then
-      DESIGNER_COMPOSE_FILE="$DESIGNER_PROJECT_DIR/docker-compose.prod.yml"
-    else
-      DESIGNER_COMPOSE_FILE="$DESIGNER_PROJECT_DIR/docker-compose.yml"
-    fi
-  fi
-}
-
-designer_compose() {
-  docker compose --project-directory "$DESIGNER_PROJECT_DIR" --env-file "$DESIGNER_ENV_FILE" \
-    -f "$DESIGNER_COMPOSE_FILE" "$@"
 }
 
 # --- HPコンテナ稼働・health ---
@@ -97,12 +80,41 @@ if [ "$MONITOR_DESIGNER" != "0" ]; then
 fi
 
 # --- サイト到達(end-to-end) ---
-code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$SITE_URL" 2>/dev/null || echo 000)"
+# curlは証明書エラー等で失敗しても %{http_code} に 000 を出力した上で非ゼロ終了するため、
+# `|| echo 000` だと 000 が二重に連結される(000000)。出力が空のときだけ補う。
+http_code() {
+  local c
+  c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1" 2>/dev/null)"
+  printf '%s' "${c:-000}"
+}
+
+code="$(http_code "$SITE_URL")"
 [ "$code" = "200" ] || add "サイト($SITE_URL)が異常 (HTTP $code)"
 if [ "$MONITOR_DESIGNER" != "0" ]; then
   # Designerはゲートで未ログイン時302。502/000等なら異常。
-  dcode="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$DESIGNER_URL" 2>/dev/null || echo 000)"
+  dcode="$(http_code "$DESIGNER_URL")"
   case "$dcode" in 200|301|302|401|403) : ;; *) add "designer($DESIGNER_URL)が異常 (HTTP $dcode)";; esac
+fi
+
+# --- TLS証明書の残日数 ---
+# ファイルではなく実際に配信中の証明書を見る。更新漏れ(cron停止)と
+# 更新はできたがNginxをreloadし損ねたケースの両方を同じ検査で拾うため。
+if [ "$CERT_MIN_DAYS" != "0" ]; then
+  cert_end="$(echo | timeout 20 openssl s_client -connect "$CERT_HOST:443" -servername "$CERT_HOST" 2>/dev/null \
+    | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)"
+  # date -d "" は失敗せず現在時刻を返すため、空判定を date より前に行う。
+  cert_end_ts=""
+  [ -n "$cert_end" ] && cert_end_ts="$(date -d "$cert_end" +%s 2>/dev/null || echo "")"
+  if [ -z "$cert_end_ts" ]; then
+    add "TLS証明書の有効期限を取得できない ($CERT_HOST:443)"
+  else
+    cert_days=$(( (cert_end_ts - $(date +%s)) / 86400 ))
+    if [ "$cert_days" -lt 0 ]; then
+      add "TLS証明書が失効している ($CERT_HOST, 期限 $cert_end)"
+    elif [ "$cert_days" -lt "$CERT_MIN_DAYS" ]; then
+      add "TLS証明書の残り ${cert_days}日 (閾値 ${CERT_MIN_DAYS}日, $CERT_HOST, 期限 $cert_end)"
+    fi
+  fi
 fi
 
 # --- ディスク ---

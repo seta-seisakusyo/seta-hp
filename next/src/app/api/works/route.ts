@@ -5,6 +5,7 @@ import {
   handleApiError,
   isErrorResponse,
   parseEditorJson,
+  sanitizeOptionalText,
   sanitizeTags,
 } from "@/lib/api-utils";
 import { WorkCreateSchema, WorkUpdateSchema } from "@/lib/validation";
@@ -98,8 +99,8 @@ export async function PUT(req: NextRequest) {
     await prisma.work.update({
       where: { id },
       data: {
-        title: title ? xss(title) : undefined,
-        description: description ? xss(description) : undefined,
+        title: sanitizeOptionalText(title),
+        description: sanitizeOptionalText(description),
         category,
         tags: tags !== undefined ? sanitizeTags(tags) : undefined,
         image: image !== undefined ? (image || null) : undefined,

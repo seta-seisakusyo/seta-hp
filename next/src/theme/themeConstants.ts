@@ -158,7 +158,7 @@ export const themeConstants = {
           backgroundColor: "#0A0A0A",
           color: "#FFFFFF",
           "&:hover": {
-            backgroundColor: "#B45309",
+            backgroundColor: COLOR_PRIMARY,
             transform: "translateY(-1px)",
           },
         },
