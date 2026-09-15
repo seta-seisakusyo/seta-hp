@@ -42,6 +42,7 @@ seta-hp/
 │   ├── prisma/              # Prismaスキーマ & シード
 │   └── public/              # 静的ファイル
 ├── docker-compose.yml          # 本番環境（ベース）
+├── docker-compose.override.yml # ローカル開発用（自動読込、port 3001）
 ├── docker-compose.local.yml    # ローカルビルド検証用
 └── nginx/                      # Nginx設定
 ```
@@ -50,6 +51,9 @@ seta-hp/
 
 ```bash
 # Docker開発環境の起動
+docker compose up --build
+
+# standaloneイメージのローカルビルド検証
 docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 # 個別コマンド (nextディレクトリで実行)
@@ -149,6 +153,32 @@ npx prisma db seed    # シードデータ投入
 ### Styling
 - MUIコンポーネント + カスタムテーマ (`src/theme/`)
 - `sx` と法務ページ共通レイアウトで表示規則を管理
+
+## 並行作業（git worktree）
+
+複数の作業を同時に進めるときは worktree で作業ツリーを分ける。同じディレクトリを
+複数のセッションで編集すると、互いの未コミット変更を取り込んでしまう事故が起きる。
+
+```bash
+# 作成 → 初期化
+git worktree add ../seta-hp-<name> -b <branch>
+cd ../seta-hp-<name>
+bash scripts/setup-worktree.sh          # .env 等のローカル資産をメインからコピー
+bash scripts/setup-worktree.sh --install # yarn install もまとめて実行する場合
+
+# 片付け
+git worktree remove ../seta-hp-<name>
+```
+
+worktree には gitignore 対象のファイル（`.env` / `next/.env` / `node_modules` /
+`uploads/` / `mysql/data/`）が引き継がれない。`setup-worktree.sh` が `.env` 系を
+メイン作業ツリーからコピーし、依存関係の導入手順を案内する。
+
+**Docker スタックは必ずメイン作業ツリーでのみ起動する。**
+`docker-compose.yml` は `container_name`（`next_app` / `mysql_db` / `nginx_proxy`）と
+公開ポート（3001 / 2999 / 80 / 443）を固定しているため、worktree から
+`docker compose up` するとメイン側のコンテナと衝突する。
+worktree はコード編集・レビュー・`yarn lint` / `yarn test` / `yarn build` に使う。
 
 ## Workflow Best Practices
 

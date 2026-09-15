@@ -5,3 +5,12 @@ services:
       dockerfile: Dockerfile
     image: seta-hp:local
     pull_policy: build
+    environment:
+      # docker-compose.yml の SSO Cookie 設定は本番(https + kaza-love.com)専用のベタ書きで、
+      # .env からは上書きできない。ローカルは http + IP/localhost で参照するため、
+      # そのままだとセッションCookieが __Secure- 接頭辞・Domain=.kaza-love.com・Secure 付きで発行され、
+      # ブラウザが保存を拒否してログインが成立しない（認証自体は成功するが即座に未ログインへ戻る）。
+      # 空文字にすると src/lib/auth.ts の `?.trim() || undefined` で undefined に落ち、
+      # NextAuth 既定の HostOnly Cookie (authjs.session-token) に戻る。
+      - SSO_COOKIE_DOMAIN=
+      - SSO_COOKIE_SECURE=0
