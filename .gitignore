@@ -55,6 +55,9 @@ mysql/data/
 # uploads
 uploads/
 
+# git worktree（EnterWorktree が作る作業ツリー）
+.claude/worktrees/
+
 # 個人事業計画・補助金書類など、リポジトリ外で保持する作業ディレクトリ
 よろずやプロジェクト/
 .~lock.*#

@@ -454,6 +454,7 @@ Error response from daemon: Get "https://ghcr.io/v2/": denied: denied
 | `scripts/backup-db.sh` | EC / Designer DB バックアップ（14日間保持、DBごとに最低3件） |
 | `scripts/monitor.sh` | EC / Designer のComposeサービス・外部経路・TLS証明書の残日数を監視 |
 | `scripts/setup-monitoring.sh` | 監視環境セットアップ |
+| `scripts/setup-worktree.sh` | git worktree の初期化（開発用。`.env` 等をメイン作業ツリーからコピー） |
 
 ```bash
 # scripts/setup-monitoring.sh が作成する主要cron
