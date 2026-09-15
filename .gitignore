@@ -52,10 +52,15 @@ node_modules/
 # mysql
 mysql/data/
 
-docker-compose.override.yml
-
 # uploads
 uploads/
+
+# Let's Encrypt の証明書・鍵・ACMEアカウント鍵。
+# *.pem では certbot/conf/accounts/ の private_key.json を拾えないため、ディレクトリごと除外する。
+certbot/
+
+# git worktree（EnterWorktree が作る作業ツリー）
+.claude/worktrees/
 
 # 個人事業計画・補助金書類など、リポジトリ外で保持する作業ディレクトリ
 よろずやプロジェクト/

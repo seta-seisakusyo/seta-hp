@@ -45,11 +45,11 @@ cp .env.example .env
 cp next/.env.example next/.env
 # 各.envファイルを編集して必要な値を設定
 
-# 3. Docker環境を起動（ローカルビルド）
-docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+# 3. Docker開発環境を起動
+docker compose up --build
 
 # 4. ブラウザでアクセス
-# http://127.0.0.1:2999
+# http://127.0.0.1:3001
 ```
 
 ### ローカル開発（Docker なし）
@@ -66,10 +66,22 @@ yarn dev              # http://localhost:3000
 ### 停止
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.local.yml down
+docker compose down
 ```
 
 ## Docker環境の構成
+
+### ローカル開発環境（docker-compose.yml + docker-compose.override.yml）
+
+| サービス | コンテナ名 | ポート | 説明 |
+|---------|-----------|--------|------|
+| next | next_app | 3001:3000 | Next.js開発サーバー（ホットリロード） |
+| mysql | mysql_db | 3306 | MySQL 8.0 データベース |
+| nginx | nginx_proxy | 80, 443 | リバースプロキシ |
+
+`docker compose up` は起動時に `prisma migrate deploy` を実行します。
+データ損失を強制し得る `prisma db push` はコンテナ起動処理に使用しません。
+ポートや公開URLはルート `.env` の `DEV_PORT` / `DEV_NEXTAUTH_URL` で変更できます。
 
 ### ローカルビルド環境（docker-compose.yml + docker-compose.local.yml）
 
@@ -100,6 +112,7 @@ Docker Composeが展開する値はルートの `.env.example` を `.env` に、
 |--------|------|
 | `IMAGE_TAG` | デプロイするコンテナイメージのタグ |
 | `MYSQL_ROOT_PASSWORD` / `MYSQL_DATABASE` / `MYSQL_USER` / `MYSQL_PASSWORD` | MySQL設定 |
+| `DEV_BIND_ADDRESS` / `DEV_PORT` / `DEV_NEXTAUTH_URL` | ローカルDocker開発環境の待受アドレス・ポート・認証URL |
 | `NEXTAUTH_URL` | ComposeからNext.jsへ渡す公開URL |
 | `SERVER_NAME` / `OLD_SERVER_NAME` | 現行・旧ドメイン |
 | `PROXY_SSO_SECRET` | Designer SSOの共有秘密 |
@@ -128,11 +141,14 @@ Docker Composeが展開する値はルートの `.env.example` を `.env` に、
 ## 開発コマンド
 
 ```bash
-# Docker 経由
-docker compose -f docker-compose.yml -f docker-compose.local.yml up --build  # 起動
-docker compose -f docker-compose.yml -f docker-compose.local.yml down        # 停止
-docker compose -f docker-compose.yml -f docker-compose.local.yml logs -f next # ログ
-docker compose -f docker-compose.yml -f docker-compose.local.yml exec next sh # シェル
+# Docker開発環境（ホットリロード、http://127.0.0.1:3001）
+docker compose up --build  # 起動
+docker compose down        # 停止
+docker compose logs -f next
+docker compose exec next sh
+
+# standaloneイメージのローカルビルド検証（http://127.0.0.1:2999）
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 # ローカル（next/ ディレクトリで実行）
 cd next
@@ -414,6 +430,22 @@ migration失敗時は、新schemaと旧Prisma Clientの非互換を避けるた�
 
 GitHub Actions の `Deploy_Production` を `workflow_dispatch` で実行してください。`docker compose pull && docker compose up -d` の直接実行は、migration・Nginx設定検証・設定再生成を迂回するため運用手順として使用しません。
 
+### 期限のある資格情報
+
+`GH_PAT`（本番サーバーが ghcr.io から pull するためのトークン）には**有効期限があります**。
+切れるとデプロイの `docker login` が次のように失敗します。
+
+```
+Error response from daemon: Get "https://ghcr.io/v2/": denied: denied
+```
+
+サイトは稼働し続けるため運用中は気づけず、**次にデプロイしようとした時に初めて発覚します**。
+更新は `gh secret set GH_PAT -R seta-seisakusyo/seta-hp`（必要スコープは `read:packages`）。
+再発行の手間を避けたい場合は、有効期限を長め（または無期限）に設定してください。
+
+なおビルドとpushは `GITHUB_TOKEN`（自動発行）を使うため、`GH_PAT` が切れても
+`ci` と `build-and-push` は成功します。失敗するのは `deploy` だけです。
+
 ## 運用スクリプト
 
 | スクリプト | 説明 |
@@ -422,6 +454,7 @@ GitHub Actions の `Deploy_Production` を `workflow_dispatch` で実行して�
 | `scripts/backup-db.sh` | EC / Designer DB バックアップ（14日間保持、DBごとに最低3件） |
 | `scripts/monitor.sh` | EC / Designer のComposeサービス・外部経路・TLS証明書の残日数を監視 |
 | `scripts/setup-monitoring.sh` | 監視環境セットアップ |
+| `scripts/setup-worktree.sh` | git worktree の初期化（開発用。`.env` 等をメイン作業ツリーからコピー） |
 
 ```bash
 # scripts/setup-monitoring.sh が作成する主要cron
