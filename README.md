@@ -417,17 +417,38 @@ GitHub Actions の `Deploy_Production` を `workflow_dispatch` で実行して�
 
 | スクリプト | 説明 |
 |-----------|------|
-| `scripts/renew-ssl.sh` | SSL 証明書の更新 |
+| `scripts/renew-ssl.sh` | SSL 証明書の更新（1日2回のcronで実行） |
 | `scripts/backup-db.sh` | EC / Designer DB バックアップ（14日間保持、DBごとに最低3件） |
-| `scripts/monitor.sh` | EC / Designer のComposeサービスと外部経路を監視 |
+| `scripts/monitor.sh` | EC / Designer のComposeサービス・外部経路・TLS証明書の残日数を監視 |
 | `scripts/setup-monitoring.sh` | 監視環境セットアップ |
 
 ```bash
 # scripts/setup-monitoring.sh が作成する主要cron
-*/5 * * * * /home/ubuntu/seta-hp/scripts/monitor.sh >> /var/log/monitor.log 2>&1
-0 4 * * * /home/ubuntu/seta-hp/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
-0 3 1 * * /home/ubuntu/seta-hp/scripts/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
+*/5 * * * * root bash /home/ubuntu/seta-hp/scripts/monitor.sh >> /var/log/monitor.log 2>&1
+0 4 * * * root bash /home/ubuntu/seta-hp/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
+17 3,15 * * * root bash /home/ubuntu/seta-hp/scripts/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
 ```
+
+SSL更新は1日2回動かします（Let's Encryptが実際に更新するのは残り30日を切った証明書だけ）。
+月1回では1度の失敗がそのまま失効につながるためです。各スクリプトを `bash` 経由で呼ぶのは、
+デプロイが `scripts/` をgitから再展開するので実行ビットに依存させないためです。
+`monitor.sh` は配信中のTLS証明書の残日数も監視し、既定で20日を切ると通知します
+（`MONITOR_CERT_MIN_DAYS` で変更、`0` で無効）。ファイルではなく実際に配信中の証明書を見るため、
+更新漏れだけでなく「更新はできたがNginxをreloadし損ねた」ケースも検知できます。
+
+**証明書更新のジョブは必ず1つに統一してください。** 個人crontab（`crontab -e` / `sudo crontab -e`）に
+同種のジョブを追加すると `/etc/cron.d/server-monitoring` と二重に走ります。特に certbot を直接
+叩くジョブは危険で、過去に次の形で失効事故が起きています:
+
+```bash
+# 悪い例: ubuntuユーザーのcrontabから root所有(644)の /var/log/certbot-renew.log へ追記している
+0 3 1,15 * * ... certbot renew --quiet && ... nginx -s reload >> /var/log/certbot-renew.log 2>&1
+```
+
+`A && B >> file` のリダイレクトは **B にしか掛かりません**。ログへ書けないユーザーで実行すると
+`certbot renew`（更新）は成功する一方 `nginx -s reload` だけが実行されず、Nginxは起動時に読んだ
+古い証明書を配信し続けたまま失効します。`setup-monitoring.sh` は実行時にこの種の重複ジョブを
+検出して警告します。
 
 Designerが別パスの場合は `DESIGNER_PROJECT_DIR`、`DESIGNER_ENV_FILE`、`DESIGNER_COMPOSE_FILE` で指定できます。意図的に対象外にする場合だけ、バックアップは `BACKUP_DESIGNER=0`、監視は `MONITOR_DESIGNER=0` を設定します。監視動作だけを確認するときは `MONITOR_SEND_EMAIL=0` で通知を抑止できます。
 
