@@ -139,6 +139,21 @@ export default function UserAuthButton() {
           </MenuItem>,
         ]}
 
+        {/* X投稿は外部への発信で取り消しが効かないため ADMIN 限定（/x-post も requireAdmin） */}
+        {isDesignerAdmin && (
+          <MenuItem
+            key="x-post"
+            onClick={() => {
+              handleMenuClose();
+              router.push("/x-post");
+            }}
+          >
+            <Typography variant="body2" sx={{ color: "primary.main" }}>
+              X 投稿
+            </Typography>
+          </MenuItem>
+        )}
+
         {isDesignerAdmin && (
           <MenuItem
             key="designer"
