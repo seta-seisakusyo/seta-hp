@@ -243,4 +243,10 @@ export const RATE_LIMITS = {
     limit: 60,
     windowMs: 60 * 1000,
   },
+  // X への手動投稿。従量課金のため、誤操作や連打がそのまま課金になる。
+  // 管理者しか叩けないので緩めだが、無制限にはしない。
+  xPost: {
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  },
 } as const;
