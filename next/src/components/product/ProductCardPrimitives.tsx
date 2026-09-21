@@ -148,7 +148,7 @@ export function ProductPriceRow({ price, variant = "full", paddingTop = 2 }: Pro
           textTransform: "uppercase",
         }}
       >
-        送料込
+        税込
       </Box>
     </Box>
   );

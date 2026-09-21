@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Catalogue / 商品一覧",
   description:
-    "MLBカード・野球カードコレクター向けアクリルディスプレイの商品一覧。8枚・16枚・25枚の壁面展示モデルやオーダーメイドに対応。全国送料無料。",
+    "MLBカード・野球カードコレクター向けアクリルディスプレイの商品一覧。8枚・16枚・25枚の壁面展示モデルやオーダーメイドに対応。",
   alternates: { canonical: "/products" },
 };
 
@@ -72,7 +72,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         statsWrap
         stats={[
           { value: products.length, label: "Products listed" },
-          { value: "¥0", label: "全国送料無料" },
           { value: "100%", label: "Hand-finished" },
         ]}
       />

@@ -4,8 +4,6 @@ const ITEMS = [
   "Made in Japan",
   "Handcrafted",
   "レーザー加工",
-  "UV対応アクリル",
-  "全国送料無料",
   "Personal Studio",
   "コレクターの、コレクターによる",
 ];
