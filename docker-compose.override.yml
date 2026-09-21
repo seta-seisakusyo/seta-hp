@@ -23,7 +23,7 @@ services:
       # NextAuth 既定の HostOnly Cookie (authjs.session-token) に戻る。
       SSO_COOKIE_DOMAIN: ""
       SSO_COOKIE_SECURE: "0"
-    mem_limit: 1g
+    mem_limit: ${DEV_MEM_LIMIT:-2g}
 
   nginx:
     ports:

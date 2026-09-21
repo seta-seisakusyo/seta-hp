@@ -24,3 +24,14 @@ export function normalizeImageUrl(value: string | null | undefined): string | nu
     return trimmed;
   }
 }
+
+/**
+ * 管理画面から永続ボリュームへ追加された画像かを判定する。
+ *
+ * 本番の Next.js は起動時に public/ のファイル一覧を固定するため、起動後に
+ * public/uploads へ追加された画像を next/image の内部リクエストから参照できない。
+ * この画像だけ最適化を迂回し、Nginx の /uploads/ alias から直接配信する。
+ */
+export function isUploadedImageUrl(value: string | null | undefined): boolean {
+  return normalizeImageUrl(value)?.startsWith("/uploads/") ?? false;
+}

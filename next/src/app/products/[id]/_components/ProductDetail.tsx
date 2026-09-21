@@ -144,7 +144,7 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
                 letterSpacing: "0.08em",
               }}
             >
-              税込・送料込
+              税込
             </Box>
           </Box>
 
@@ -218,7 +218,7 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
               lineHeight: 1.7,
             }}
           >
-            全国送料無料・緩衝材入りの梱包と配送保険付き。
+            緩衝材入りの梱包と配送保険付き。
             通常 3〜7 営業日で発送します。
           </Box>
 

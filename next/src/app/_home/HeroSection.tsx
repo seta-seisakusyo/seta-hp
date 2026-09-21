@@ -3,12 +3,15 @@ import SectionContainer from "@/components/SectionContainer";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 import Image from "next/image";
 import PillLink from "@/components/PillLink";
+import { isUploadedImageUrl } from "@/lib/images";
 
 interface HeroSectionProps {
   heroImage?: string | null;
 }
 
 const HeroSection = ({ heroImage }: HeroSectionProps) => {
+  const imageSrc = heroImage || "/kaza-love_logo.png";
+
   return (
     <Box
       component="section"
@@ -127,7 +130,6 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
               {[
                 { v: "3", l: "標準モデル" },
                 { v: "100%", l: "手仕上げ" },
-                { v: "¥0", l: "全国送料無料" },
               ].map((s) => (
                 <Box key={s.l} sx={{ flex: 1, minWidth: 100, maxWidth: 140 }}>
                   <Box
@@ -169,10 +171,11 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
             }}
           >
             <Image
-              src={heroImage || "/kaza-love_logo.png"}
+              src={imageSrc}
               alt="飾Love アクリル壁面ディスプレイ"
               fill
               sizes="(max-width: 960px) 100vw, 50vw"
+              unoptimized={isUploadedImageUrl(imageSrc)}
               priority
               style={{ objectFit: "cover" }}
             />

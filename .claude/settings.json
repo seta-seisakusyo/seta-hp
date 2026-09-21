@@ -10,7 +10,20 @@
       "Bash(gh pr create --base develop --title 'サイト改善: ヒーロー画像管理・X連携・表記整理' --body ' *)",
       "Bash(git stash *)",
       "Bash(git pull *)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Bash(sudo du -xsh /var/lib/docker /var/log /home /usr)",
+      "Bash(docker volume *)",
+      "Bash(sudo sh -c 'for d in /var/lib/docker/volumes/*/_data; do v=$\\(basename $\\(dirname $d\\)\\); s=$\\(du -xsh $d 2>/dev/null | cut -f1\\); echo \"$s $v\"; done')",
+      "Bash(sudo -n true)",
+      "Bash(sudo -n du -xsh /var/lib/docker/volumes/act-apps_mysql-data)",
+      "Bash(crontab -l)",
+      "Bash(git symbolic-ref *)",
+      "Bash(git fetch *)",
+      "Bash(gh pr create --base develop --head fix/compose-log-rotation --title 'fix: 開発用 compose にログローテーションを追加' --body ' *)"
+    ],
+    "additionalDirectories": [
+      "/home/ubuntu/scripts",
+      "/home/ubuntu/display_design"
     ]
   }
 }
