@@ -130,7 +130,6 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
               {[
                 { v: "3", l: "標準モデル" },
                 { v: "100%", l: "手仕上げ" },
-                { v: "¥0", l: "全国送料無料" },
               ].map((s) => (
                 <Box key={s.l} sx={{ flex: 1, minWidth: 100, maxWidth: 140 }}>
                   <Box
