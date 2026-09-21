@@ -14,8 +14,9 @@ import { getPrimaryProductImage } from "@/lib/types/product";
 // ISR: ビルド時は生成せず（CIビルドはDB到達不可のため generateStaticParams は空）、
 // 初回アクセス時に生成してキャッシュする。商品の作成・更新・削除時は
 // API 側の revalidateProductPages() が全詳細ページを即時再生成対象にする。
-// Next.js のroute configはimport定数を静的解析できないためリテラルで指定する。
-export const revalidate = 3600;
+// Next.js のroute configはimport定数を静的解析できないためリテラルで指定する
+// （CACHE_REVALIDATE_SECONDS と同じ値を手で合わせる）。
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   return [];
