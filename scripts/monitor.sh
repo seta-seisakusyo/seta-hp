@@ -31,8 +31,12 @@ DESIGNER_SERVICES="${MONITOR_DESIGNER_SERVICES:-}"
 # shellcheck source=scripts/lib/designer-compose.sh
 . "$SCRIPT_DIR/lib/designer-compose.sh"
 
+# problems は通知本文用(可変の詳細を含む)、problems_key はクールダウン判定用の安定表現。
+# curl のエラー文にはミリ秒など実行毎に変わる値が混ざるため、そのままハッシュすると
+# 同一障害でも毎回別問題と見なされ、5分毎にメールが飛んでしまう。
 problems=""
-add() { problems+="- $1"$'\n'; }
+problems_key=""
+add() { problems+="- $1"$'\n'; problems_key+="- ${2:-$1}"$'\n'; }
 
 check_container() {
   local label="$1"
@@ -82,23 +86,63 @@ fi
 # --- サイト到達(end-to-end) ---
 # curlは証明書エラー等で失敗しても %{http_code} に 000 を出力した上で非ゼロ終了するため、
 # `|| echo 000` だと 000 が二重に連結される(000000)。出力が空のときだけ補う。
-http_code() {
-  local c
-  c="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1" 2>/dev/null)"
-  printf '%s' "${c:-000}"
+#
+# HTTP 000 は「レスポンスを受け取れなかった」以上の情報を持たず、失効/DNS/接続断/タイムアウトの
+# どれなのかが本文から判別できない。2026-09-14 の証明書失効時、通知が症状だけだったため
+# 原因特定にgit履歴の遡りが必要になった。curlの終了コードとstderrも併記する。
+CURL_STDERR_FILE="$(mktemp)"
+trap 'rm -f "$CURL_STDERR_FILE"' EXIT
+
+curl_reason() {
+  case "$1" in
+    0)   printf '' ;;
+    5|6) printf 'DNS解決に失敗' ;;
+    7)   printf '接続を拒否/到達不可' ;;
+    28)  printf 'タイムアウト' ;;
+    35)  printf 'TLSハンドシェイクに失敗' ;;
+    51)  printf 'TLS証明書/公開鍵がホストと一致しない' ;;
+    60)  printf 'TLS証明書を検証できない(失効・期限切れ・ホスト名不一致など)' ;;
+    *)   printf 'curl終了コード %s' "$1" ;;
+  esac
 }
 
-code="$(http_code "$SITE_URL")"
-[ "$code" = "200" ] || add "サイト($SITE_URL)が異常 (HTTP $code)"
+# command substitution はサブシェルなので関数内の代入が親へ戻らない。
+# コードと失敗理由の両方をグローバル経由で受け渡す。
+HTTP_CODE=""
+HTTP_DETAIL=""
+probe_http() {
+  local rc err
+  HTTP_CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "$1" 2>"$CURL_STDERR_FILE")"
+  rc=$?
+  HTTP_CODE="${HTTP_CODE:-000}"
+  HTTP_DETAIL="$(curl_reason "$rc")"
+  # curlのエラーは複数行(60番なら証明書の解説が続く)。原因が載るのは先頭の
+  # `curl: (N) ...` 行なので、それを優先して拾う。
+  err="$(tr -d '\r' < "$CURL_STDERR_FILE" | sed -n 's/^curl: ([0-9]*) //p' | head -1)"
+  if [ -n "$err" ]; then
+    HTTP_DETAIL="${HTTP_DETAIL:+$HTTP_DETAIL: }$err"
+  fi
+}
+
+probe_http "$SITE_URL"
+[ "$HTTP_CODE" = "200" ] || add \
+  "サイト($SITE_URL)が異常 (HTTP $HTTP_CODE${HTTP_DETAIL:+ / $HTTP_DETAIL})" \
+  "サイト($SITE_URL)が異常 (HTTP $HTTP_CODE)"
 if [ "$MONITOR_DESIGNER" != "0" ]; then
   # Designerはゲートで未ログイン時302。502/000等なら異常。
-  dcode="$(http_code "$DESIGNER_URL")"
-  case "$dcode" in 200|301|302|401|403) : ;; *) add "designer($DESIGNER_URL)が異常 (HTTP $dcode)";; esac
+  probe_http "$DESIGNER_URL"
+  case "$HTTP_CODE" in
+    200|301|302|401|403) : ;;
+    *) add \
+         "designer($DESIGNER_URL)が異常 (HTTP $HTTP_CODE${HTTP_DETAIL:+ / $HTTP_DETAIL})" \
+         "designer($DESIGNER_URL)が異常 (HTTP $HTTP_CODE)" ;;
+  esac
 fi
 
 # --- TLS証明書の残日数 ---
 # ファイルではなく実際に配信中の証明書を見る。更新漏れ(cron停止)と
 # 更新はできたがNginxをreloadし損ねたケースの両方を同じ検査で拾うため。
+CERT_SUMMARY="チェック無効 (MONITOR_CERT_MIN_DAYS=0)"
 if [ "$CERT_MIN_DAYS" != "0" ]; then
   cert_end="$(echo | timeout 20 openssl s_client -connect "$CERT_HOST:443" -servername "$CERT_HOST" 2>/dev/null \
     | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)"
@@ -106,9 +150,11 @@ if [ "$CERT_MIN_DAYS" != "0" ]; then
   cert_end_ts=""
   [ -n "$cert_end" ] && cert_end_ts="$(date -d "$cert_end" +%s 2>/dev/null || echo "")"
   if [ -z "$cert_end_ts" ]; then
+    CERT_SUMMARY="取得不能 ($CERT_HOST:443 へのTLS接続が成立しない)"
     add "TLS証明書の有効期限を取得できない ($CERT_HOST:443)"
   else
     cert_days=$(( (cert_end_ts - $(date +%s)) / 86400 ))
+    CERT_SUMMARY="$CERT_HOST 残り${cert_days}日 (期限 $cert_end)"
     if [ "$cert_days" -lt 0 ]; then
       add "TLS証明書が失効している ($CERT_HOST, 期限 $cert_end)"
     elif [ "$cert_days" -lt "$CERT_MIN_DAYS" ]; then
@@ -132,10 +178,43 @@ if [ -z "$problems" ]; then
   exit 0
 fi
 
-printf '[%s] 異常検知:\n%s' "$ts" "$problems"
+# --- 通知本文に添える環境情報 ---
+# 「どのホストの、どの版のスクリプトが、何を見て異常と判断したのか」をメール単体で追えるようにする。
+# 開発機と本番は同じcomposeスタックが動いていて紛らわしく、送信元の特定に手間がかかる。
+# デプロイは scripts/ を IMAGE_TAG のSHAから再展開する(deploy_production.yml)ため、
+# IMAGE_TAG はそのままこのスクリプト自身の版を指す。HEADはcheckout -- で動かないので使わない。
+deployed_tag="$(grep -m1 '^IMAGE_TAG=' "$PROJECT_DIR/.env" 2>/dev/null | cut -d= -f2)"
+host_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+monitor_targets="$SITE_URL"
+[ "$MONITOR_DESIGNER" != "0" ] && monitor_targets="$monitor_targets , $DESIGNER_URL"
+context="【検知時刻】     $ts
+【ホスト】       $(hostname) (${host_ip:-IP不明})
+【デプロイSHA】  ${deployed_tag:-unknown}  ※scripts/ はこのSHAから展開される
+【監視対象】     $monitor_targets
+【TLS証明書】    $CERT_SUMMARY
+【ディスク】     ${disk:-?}% 使用 (閾値 ${DISK_THRESHOLD}%)
+【空きメモリ】   ${memav:-?}MB (閾値 ${MEM_MIN_MB}MB)"
+
+# HTTP 000 はステータスコードではないので、受け取った側が誤解しないよう意味を添える。
+hints=""
+case "$problems" in
+  *"HTTP 000"*)
+    hints="
+【HTTP 000 について】
+HTTPステータスではなく「レスポンスを受け取れなかった」ことを示す。
+実際の理由は上の各行の \" / \" 以降に curl が報告したものを載せている。
+TLS証明書の失効・期限切れが原因の場合は、本番で以下を実行して更新とNginxのreloadを確認する:
+  sudo bash scripts/renew-ssl.sh
+"
+    ;;
+esac
+
+printf '[%s] 異常検知:\n%s\n%s\n' "$ts" "$problems" "$context"
 
 # --- クールダウン（同一問題の連続通知を抑止） ---
-hash_now="$(printf '%s' "$problems" | md5sum | cut -d' ' -f1)"
+# ハッシュは problems ではなく problems_key から取る。curlのエラー文に含まれる
+# 実行毎に変わる値(経過ミリ秒など)でクールダウンが無効化されるのを防ぐため。
+hash_now="$(printf '%s' "$problems_key" | md5sum | cut -d' ' -f1)"
 now="$(date +%s)"
 if [ -f "$STATE_FILE" ]; then
   read -r last_hash last_ts < "$STATE_FILE" 2>/dev/null || true
@@ -154,7 +233,10 @@ if [ "$MONITOR_SEND_EMAIL" != "0" ] && [ -n "${SMTP_HOST:-}" ] && [ -n "$ALERT_T
   export MAIL_SUBJECT="[kaza-love監視] 異常検知 $ts"
   export MAIL_BODY="サーバー($(hostname))で異常を検知しました。
 
-${problems}
+${context}
+
+【検知した異常】
+${problems}${hints}
 -- 自動監視 scripts/monitor.sh"
   export SMTP_HOST SMTP_PORT="${SMTP_PORT:-587}" SMTP_USER="${SMTP_USER:-}" SMTP_PASS="${SMTP_PASS:-}"
   python3 - <<'PY'
