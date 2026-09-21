@@ -4,6 +4,7 @@ import {
   VALID_PRODUCT_CATEGORIES,
   VALID_STOCK_OPTIONS,
 } from "@/lib/constants/categories";
+import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
 
 // ValidationError型（後方互換性のため維持）
 interface ValidationError {
@@ -219,3 +220,28 @@ export const NewsUpdateSchema = NewsCreateSchema.partial().extend({
 });
 
 export const RequiredIdSchema = z.object({ id: idSchema });
+
+// X (旧Twitter) への手動投稿。
+// 画像は /uploads/ 配下の既存アップロード画像のみ指定でき、任意URLは受け付けない
+// （サーバーが取りに行く先を外部から指定できるとSSRFになるため）。
+export const XPostSchema = z.object({
+  text: z
+    .string({ required_error: "本文は必須です" })
+    .min(1, { message: "本文は必須です" })
+    .max(X_POST_MAX_LENGTH, {
+      message: `本文は${X_POST_MAX_LENGTH}文字以内で入力してください`,
+    }),
+  imageUrls: z
+    .array(
+      z
+        .string()
+        .regex(/^\/uploads\/[A-Za-z0-9._-]+$/, {
+          message: "画像はアップロード済みのものだけ指定できます",
+        })
+    )
+    .max(X_POST_MAX_IMAGES, {
+      message: `画像は${X_POST_MAX_IMAGES}枚までです`,
+    })
+    .optional()
+    .default([]),
+});

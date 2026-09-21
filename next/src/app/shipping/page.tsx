@@ -4,7 +4,7 @@ import LegalPageLayout from "../_legal/LegalPageLayout";
 export const metadata: Metadata = {
   title: "配送・返品について",
   description:
-    "飾Love の配送方法・送料・返品ポリシーをご案内します。全国送料無料、緩衝材入りの梱包と配送保険付き。",
+    "飾Love の配送方法・送料・返品ポリシーをご案内します。送料は全国一律2,000円、10,000円(税込)以上のご購入で無料です。",
   alternates: { canonical: "/shipping" },
 };
 
@@ -23,8 +23,10 @@ export default function ShippingPage() {
 
       <h2>送料</h2>
       <p>
-        <strong>全国送料無料</strong>でお届けします。
-        商品代金以外に送料をご負担いただくことはありません。
+        <strong>全国一律 2,000 円(税込)</strong>です。お届け先の地域や商品の大きさによる違いはありません。
+      </p>
+      <p>
+        商品代金の合計が <strong>10,000 円(税込)以上</strong>の場合、送料は無料です。
       </p>
 
       <h2>お届け日数</h2>

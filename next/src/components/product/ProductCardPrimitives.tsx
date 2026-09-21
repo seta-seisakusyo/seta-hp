@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Box } from "@mui/material";
 import Image from "next/image";
+import { isUploadedImageUrl } from "@/lib/images";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
 interface ProductCardFrameProps {
@@ -61,7 +62,14 @@ export function ProductCardMedia({
   return (
     <Box sx={{ position: "relative", aspectRatio, background, overflow: "hidden" }}>
       {src ? (
-        <Image src={src} alt={alt} fill sizes={sizes} style={{ objectFit: "cover" }} />
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes={sizes}
+          unoptimized={isUploadedImageUrl(src)}
+          style={{ objectFit: "cover" }}
+        />
       ) : (
         placeholder && (
           <Box
@@ -140,7 +148,7 @@ export function ProductPriceRow({ price, variant = "full", paddingTop = 2 }: Pro
           textTransform: "uppercase",
         }}
       >
-        送料込
+        税込
       </Box>
     </Box>
   );

@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import SectionContainer from "@/components/SectionContainer";
 import { getGalleryCategoryLabel } from "@/lib/constants/categories";
 import { formatRefNumber } from "@/lib/format";
+import { isUploadedImageUrl } from "@/lib/images";
 import type { WorkGridItem } from "@/lib/types/work";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
@@ -35,6 +36,7 @@ function GalleryCardImage({ src, alt }: { src: string; alt: string }) {
         alt={alt}
         fill
         sizes="(max-width: 600px) 100vw, (max-width: 960px) 50vw, 33vw"
+        unoptimized={isUploadedImageUrl(src)}
         style={{ objectFit: "contain", objectPosition: "center center" }}
       />
     </Box>
@@ -266,6 +268,7 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
                 alt={selectedWork.title}
                 fill
                 sizes="92vw"
+                unoptimized={isUploadedImageUrl(selectedWork.image)}
                 style={{ objectFit: "contain", objectPosition: "center center" }}
                 priority
               />

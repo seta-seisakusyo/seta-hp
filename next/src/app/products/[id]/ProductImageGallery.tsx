@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Box } from "@mui/material";
 import Image from "next/image";
 import StyleIcon from "@mui/icons-material/Style";
+import { isUploadedImageUrl } from "@/lib/images";
 
 interface ProductImageGalleryProps {
   images: string[];
@@ -61,6 +62,7 @@ export default function ProductImageGallery({ images, productName }: ProductImag
           src={images[selectedIndex]}
           alt={`${productName} - 画像 ${selectedIndex + 1}`}
           fill
+          unoptimized={isUploadedImageUrl(images[selectedIndex])}
           style={{ objectFit: "cover" }}
           priority
         />
@@ -125,6 +127,7 @@ export default function ProductImageGallery({ images, productName }: ProductImag
                 src={image}
                 alt={`${productName} - サムネイル ${index + 1}`}
                 fill
+                unoptimized={isUploadedImageUrl(image)}
                 style={{ objectFit: "cover" }}
               />
             </Box>

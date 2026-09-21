@@ -4,17 +4,14 @@ import { useState } from "react";
 import {
   Avatar,
   Box,
-  Button,
   Divider,
   IconButton,
   Menu,
   MenuItem,
   Typography,
 } from "@mui/material";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { isAdminRole, isEditorRole } from "@/lib/roles";
 
 export default function UserAuthButton() {
@@ -35,39 +32,12 @@ export default function UserAuthButton() {
     await signOut({ callbackUrl: "/" });
   };
 
-  // ローディング中
-  if (status === "loading") {
-    return (
-      <IconButton disabled>
-        <PersonOutlineIcon sx={{ color: "#CCC" }} />
-      </IconButton>
-    );
-  }
-
-  // 未ログイン時
-  if (status === "unauthenticated") {
-    return (
-      <Link href="/login">
-        <Button
-          variant="outlined"
-          size="small"
-          sx={{
-            color: "#333",
-            borderColor: "#DDD",
-            borderRadius: "50px",
-            px: 2,
-            fontWeight: 500,
-            fontSize: "13px",
-            "&:hover": {
-              borderColor: "#333",
-              bgcolor: "transparent",
-            },
-          }}
-        >
-          ログイン
-        </Button>
-      </Link>
-    );
+  // 一般訪問者にログイン導線を見せない（#258）。
+  // /login は Nginx 層でIP制限済み（#251）で、ボタンを出しても到達できる人は限られる。
+  // ログイン済みかどうかが確定するまでは何も描画しない。
+  // プレースホルダを出すと、未ログイン時に一瞬アイコンが見えてから消える挙動になる。
+  if (status !== "authenticated") {
+    return null;
   }
 
   // ログイン済み
@@ -138,6 +108,21 @@ export default function UserAuthButton() {
             </Typography>
           </MenuItem>,
         ]}
+
+        {/* X投稿は外部への発信で取り消しが効かないため ADMIN 限定（/x-post も requireAdmin） */}
+        {isDesignerAdmin && (
+          <MenuItem
+            key="x-post"
+            onClick={() => {
+              handleMenuClose();
+              router.push("/x-post");
+            }}
+          >
+            <Typography variant="body2" sx={{ color: "primary.main" }}>
+              X 投稿
+            </Typography>
+          </MenuItem>
+        )}
 
         {isDesignerAdmin && (
           <MenuItem

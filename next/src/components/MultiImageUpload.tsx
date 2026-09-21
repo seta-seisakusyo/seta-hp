@@ -12,20 +12,23 @@ import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import { IMAGE_ACCEPT, IMAGE_UPLOAD_HINT } from "@/lib/image-upload-constants";
 import { useImageUpload } from "@/lib/hooks/useImageUpload";
 
-const MAX_IMAGES = 10;
+const DEFAULT_MAX_IMAGES = 10;
 
 interface MultiImageUploadProps {
   value: string[];
   onChange: (urls: string[]) => void;
+  /** 添付上限。X投稿など媒体側の制限が異なる画面から上書きする。 */
+  maxImages?: number;
 }
 
 export default function MultiImageUpload({
   value,
   onChange,
+  maxImages = DEFAULT_MAX_IMAGES,
 }: MultiImageUploadProps) {
   const { error, uploading, fileInputRef, handleFileSelect, openFileDialog } = useImageUpload({
     currentCount: value.length,
-    maxFiles: MAX_IMAGES,
+    maxFiles: maxImages,
     onUploaded: (urls) => onChange([...value, ...urls]),
   });
 
@@ -109,7 +112,7 @@ export default function MultiImageUpload({
           </Box>
         ))}
 
-        {value.length < MAX_IMAGES && (
+        {value.length < maxImages && (
           <Button
             variant="outlined"
             onClick={openFileDialog}
@@ -142,7 +145,7 @@ export default function MultiImageUpload({
       )}
 
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-        {IMAGE_UPLOAD_HINT} - {value.length}/{MAX_IMAGES}枚
+        {IMAGE_UPLOAD_HINT} - {value.length}/{maxImages}枚
         {value.length > 1 && " - クリックで順番変更"}
       </Typography>
     </Box>

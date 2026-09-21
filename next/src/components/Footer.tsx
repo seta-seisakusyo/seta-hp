@@ -3,15 +3,22 @@ import Link from "next/link";
 import SectionContainer from "@/components/SectionContainer";
 import XIcon from "@/components/XIcon";
 import { X_PROFILE_URL } from "@/lib/site-config";
+import { PRODUCT_CATEGORIES } from "@/lib/constants/categories";
 import { COLOR_DARK_ACCENT, FONT_DISPLAY } from "@/theme/themeConstants";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
+    // 個別の商品名は置かない。フッターはルートレイアウトにあり静的ページにも焼き込まれるため、
+    // 商品名を直書きすると非公開にしても全ページに残り続ける。DBから引くのも不可
+    // （CIビルドはDBへ到達できず、静的ページに空のリンク欄が固定される）。
+    // 商品の増減に左右されないカテゴリ定数から組み立てる。
     title: "Catalogue / 品目",
     links: [
-      { label: "Starter · 8枚展示", href: "/products" },
-      { label: "Collector · 16枚展示", href: "/products" },
-      { label: "Master · 25枚展示", href: "/products" },
+      { label: "商品一覧", href: "/products" },
+      ...PRODUCT_CATEGORIES.map((category) => ({
+        label: category.label,
+        href: `/products?category=${category.value}`,
+      })),
       { label: "特注品のご相談", href: "/contact" },
     ],
   },

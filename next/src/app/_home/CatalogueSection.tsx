@@ -54,7 +54,7 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
             <>
               アクリルから一つずつレーザー切削、手仕上げ。
               <br />
-              MLBカード・トレカを美しく飾るためのディスプレイを、全国送料無料でお届けします。
+              MLBカード・トレカを美しく飾るためのディスプレイをお届けします。
               <Box
                 sx={{
                   display: "block",

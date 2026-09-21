@@ -1,7 +1,6 @@
 "use client";
 
 import MenuIcon from "@mui/icons-material/Menu";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import {
   AppBar,
   Box,
@@ -20,13 +19,10 @@ import { X_PROFILE_URL } from "@/lib/site-config";
 import { FONT_DISPLAY, HEADER_HEIGHTS } from "@/theme/themeConstants";
 
 // next-auth のクライアントJSは遅延チャンクに分離（初期バンドル削減 #245）
+// 読込中のプレースホルダは出さない。一般訪問者には最終的に何も表示されないため、
+// 人型アイコンを挟むと「一瞬見えて消える」ちらつきになる（#258）。
 const UserAuthMenu = dynamic(() => import("@/components/UserAuthMenu"), {
   ssr: false,
-  loading: () => (
-    <IconButton disabled>
-      <PersonOutlineIcon sx={{ color: "#CCC" }} />
-    </IconButton>
-  ),
 });
 
 const NAV_LINKS = [
