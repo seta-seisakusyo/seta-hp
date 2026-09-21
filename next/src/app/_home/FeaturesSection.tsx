@@ -6,27 +6,27 @@ import SplitSectionHeading from "./SplitSectionHeading";
 const FEATURES = [
   {
     num: "01",
-    title: "変色しないアクリル",
-    titleEn: "UV-Resistant Acrylic",
-    body: "UV安定剤入りキャストアクリルを使用。黄ばみ・くもりが出ません。",
+    title: "オーダーメイド対応",
+    titleEn: "Made to Order",
+    body: "飾りたいカードに合わせて設計。オーダーメイドもカタログ品と同じ価格帯でお作りします。",
   },
   {
     num: "02",
-    title: "スリーブ対応",
-    titleEn: "Sleeve-Compatible",
-    body: "標準スリーブのまま展示可能。カードを保護したまま飾れます。",
+    title: "マグネット着脱",
+    titleEn: "Magnetic Mount",
+    body: "着脱はマグネット式。並べ替えも入れ替えも手早く行えます。",
   },
   {
     num: "03",
-    title: "壁掛け・卓上 両対応",
-    titleEn: "Wall or Desktop",
-    body: "壁掛け金具と卓上スタンドの両方が付属。いつでも置き場所を変えられます。",
+    title: "カード以外も飾れる",
+    titleEn: "Beyond Cards",
+    body: "付属ツールでカード以外にも対応。アクリルキーホルダーや缶バッジも一緒に飾れます。",
   },
   {
     num: "04",
-    title: "全国送料無料",
-    titleEn: "Free Shipping in JP",
-    body: "緩衝材入りの梱包と配送保険付き。全国どこでも送料無料でお届けします。",
+    title: "壁掛け・卓上 両対応",
+    titleEn: "Wall or Desktop",
+    body: "サイズによっては壁掛け金具と卓上スタンドが付属。いつでも置き場所を変えられます。",
   },
 ];
 
