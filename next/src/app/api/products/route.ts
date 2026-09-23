@@ -6,10 +6,6 @@ import {
   handleApiError,
   isErrorResponse,
   parseEditorJson,
-  sanitizeNullableText,
-  sanitizeOptionalNullableText,
-  sanitizeOptionalText,
-  sanitizeTags,
 } from "@/lib/api-utils";
 import { ProductCreateSchema, ProductUpdateSchema } from "@/lib/validation";
 import {
@@ -18,7 +14,6 @@ import {
 } from "@/lib/managed-resource-route";
 import { collectImageUrls, deleteUnusedUploadedFiles } from "@/lib/uploaded-files";
 import { revalidateProductPages } from "@/lib/cache-tags";
-import xss from "xss";
 
 // 商品一覧取得（公開用）
 export async function GET(req: NextRequest) {
@@ -79,16 +74,16 @@ export async function POST(req: NextRequest) {
 
     await prisma.product.create({
       data: {
-        name: xss(name),
-        description: xss(description),
+        name,
+        description,
         price,
         category,
-        tags: sanitizeTags(tags),
+        tags: tags ?? "",
         images: images ?? Prisma.JsonNull,
         stock: stock || "在庫あり",
         isPublished: isPublished !== false,
         isHeroImage: isHeroImage === true,
-        purchaseUrl: sanitizeNullableText(purchaseUrl),
+        purchaseUrl: purchaseUrl ?? null,
       },
       select: { id: true },
     });
@@ -132,16 +127,16 @@ export async function PUT(req: NextRequest) {
     await prisma.product.update({
       where: { id },
       data: {
-        name: sanitizeOptionalText(name),
-        description: sanitizeOptionalText(description),
+        name,
+        description,
         price,
         category,
-        tags: tags !== undefined ? sanitizeTags(tags) : undefined,
+        tags,
         images: images !== undefined ? (images ?? Prisma.JsonNull) : undefined,
         stock,
         isPublished,
         isHeroImage,
-        purchaseUrl: sanitizeOptionalNullableText(purchaseUrl),
+        purchaseUrl,
       },
       select: { id: true },
     });

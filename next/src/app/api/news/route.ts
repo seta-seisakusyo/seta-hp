@@ -5,8 +5,6 @@ import {
   handleApiError,
   isErrorResponse,
   parseEditorJson,
-  sanitizeNullableText,
-  sanitizeOptionalNullableText,
 } from "@/lib/api-utils";
 import {
   NewsCreateSchema,
@@ -53,10 +51,10 @@ export async function POST(req: NextRequest) {
 
     await prisma.news.create({
       data: {
-        title: xss(title),
+        title,
         contents: sanitizeNewsContents(contents),
         date,
-        url: sanitizeNullableText(url),
+        url: url ?? null,
       },
       select: { id: true },
     });
@@ -78,10 +76,10 @@ export async function PUT(req: NextRequest) {
     await prisma.news.update({
       where: { id },
       data: {
-        title: title ? xss(title) : undefined,
+        title,
         contents: contents !== undefined ? sanitizeNewsContents(contents) : undefined,
         date,
-        url: sanitizeOptionalNullableText(url),
+        url,
       },
       select: { id: true },
     });

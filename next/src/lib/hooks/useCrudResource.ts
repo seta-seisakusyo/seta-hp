@@ -34,16 +34,19 @@ export function useCrudResource<T extends { id: number }>({
   pageSize = 50,
 }: UseCrudResourceOptions) {
   const [items, setItems] = useState<T[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const refreshNoticeRef = useRef<string | undefined>(undefined);
   const requestControllerRef = useRef<AbortController | null>(null);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (successMessage = refreshNoticeRef.current) => {
     requestControllerRef.current?.abort();
     const controller = new AbortController();
     requestControllerRef.current = controller;
     setLoading(true);
+    setError(null);
 
     try {
       const baseUrl = listUrl ?? endpoint;
@@ -58,6 +61,7 @@ export function useCrudResource<T extends { id: number }>({
       const nextTotal = typeof data.total === "number" ? data.total : nextItems.length;
       const lastPage = Math.max(1, Math.ceil(nextTotal / pageSize));
 
+      refreshNoticeRef.current = undefined;
       setTotal(nextTotal);
       if (page > lastPage) {
         setPage(lastPage);
@@ -65,8 +69,9 @@ export function useCrudResource<T extends { id: number }>({
         setItems(nextItems);
       }
     } catch (error) {
-      if (!isAbortError(error)) {
+      if (!controller.signal.aborted && !isAbortError(error)) {
         console.error(`${label}一覧の取得に失敗:`, error);
+        setError(`${successMessage ? `${successMessage}。` : ""}${label}一覧の取得に失敗しました。再試行してください。`);
       }
     } finally {
       if (requestControllerRef.current === controller) {
@@ -89,6 +94,7 @@ export function useCrudResource<T extends { id: number }>({
           method: id ? "PUT" : "POST",
           body: id ? { id, ...payload } : payload,
         });
+        refreshNoticeRef.current = `${label}を保存しました`;
         if (!id && page !== 1) {
           setPage(1);
         } else {
@@ -109,6 +115,7 @@ export function useCrudResource<T extends { id: number }>({
     async (id: number): Promise<boolean> => {
       try {
         await apiJson(endpoint, { method: "DELETE", body: { id } });
+        refreshNoticeRef.current = `${label}を削除しました`;
         await refetch();
         return true;
       } catch (error) {
@@ -123,6 +130,8 @@ export function useCrudResource<T extends { id: number }>({
   return {
     items,
     loading,
+    error,
+    retry: refetch,
     save,
     remove,
     pagination: {

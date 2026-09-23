@@ -1,4 +1,6 @@
 import * as z from "zod";
+import xss from "xss";
+import { DATABASE_INT_MAX } from "./db-limits";
 import {
   VALID_GALLERY_CATEGORIES,
   VALID_PRODUCT_CATEGORIES,
@@ -70,13 +72,14 @@ export const RegistrationSchema = z.object({
 // ---------------------------------------------------------------------------
 // 商品・制作事例（管理API用）
 // POST/PUT で重複していた手続き的バリデーションを Zod に統一（#245）。
-// スキーマは検証のみを担い、XSS サニタイズや DB への整形は各ルート側で行う。
+// 保存する文字列へ変換してからDB制約を検証する。ルートで再変換しない。
 // ---------------------------------------------------------------------------
 
 const priceSchema = z.coerce
   .number({ invalid_type_error: "価格は0以上の整数を指定してください" })
   .int({ message: "価格は0以上の整数を指定してください" })
-  .min(0, { message: "価格は0以上の整数を指定してください" });
+  .min(0, { message: "価格は0以上の整数を指定してください" })
+  .max(DATABASE_INT_MAX, { message: `価格は${DATABASE_INT_MAX}以下で指定してください` });
 
 const productCategorySchema = z
   .string({ required_error: "カテゴリは必須です" })
@@ -92,6 +95,15 @@ const stockSchema = z
 
 // MySQL の String(VARCHAR(191)) 列に対応する最大長。超過は DB insert 前に 400 で弾く。
 const VARCHAR_MAX = 191;
+
+function storedText(requiredMessage: string, lengthMessage?: string) {
+  const input = z.string({ required_error: requiredMessage }).min(1, { message: requiredMessage });
+  const sanitized = input.transform((value) => xss(value));
+  return sanitized.pipe(lengthMessage
+    ? z.string().min(1, { message: requiredMessage }).max(VARCHAR_MAX, { message: lengthMessage })
+    : z.string().min(1, { message: requiredMessage }));
+}
+
 
 /**
  * http(s) スキームのみを許可するURLスキーマを生成する。
@@ -113,7 +125,10 @@ function makeHttpUrlSchema(message: string) {
         }
       },
       { message }
-    );
+    )
+    .transform((value) => xss(value))
+    .pipe(z.string().max(VARCHAR_MAX, { message }))
+    .transform((value) => value || null);
 }
 
 const purchaseUrlSchema = makeHttpUrlSchema("購入URLは http(s) 形式の有効なURLを指定してください");
@@ -121,17 +136,18 @@ const purchaseUrlSchema = makeHttpUrlSchema("購入URLは http(s) 形式の有�
 const idSchema = z
   .number({ required_error: "IDは必須です", invalid_type_error: "IDは必須です" })
   .int({ message: "IDは必須です" })
-  .positive({ message: "IDは必須です" });
+  .positive({ message: "IDは必須です" })
+  .max(DATABASE_INT_MAX, { message: "IDが範囲外です" });
 
-const tagsSchema = z.union([z.string(), z.array(z.unknown())]).optional();
-const optionalImageSchema = z.string().optional().nullable();
+const tagsSchema = z.union([z.string(), z.array(z.unknown())])
+  .transform((tags) => Array.isArray(tags) ? tags.map((tag) => xss(String(tag))).join(",") : xss(tags))
+  .pipe(z.string().max(VARCHAR_MAX, { message: `タグは${VARCHAR_MAX}文字以内で入力してください` }))
+  .optional();
+const optionalImageSchema = z.string().max(VARCHAR_MAX, { message: "画像URLが長すぎます" }).optional().nullable();
 
 export const ProductCreateSchema = z.object({
-  name: z
-    .string({ required_error: "名前は必須です" })
-    .min(1, { message: "名前は必須です" })
-    .max(VARCHAR_MAX, { message: `名前は${VARCHAR_MAX}文字以内で入力してください` }),
-  description: z.string({ required_error: "説明は必須です" }).min(1, { message: "説明は必須です" }),
+  name: storedText("名前は必須です", `名前は${VARCHAR_MAX}文字以内で入力してください`),
+  description: storedText("説明は必須です"),
   price: priceSchema,
   category: productCategorySchema,
   tags: tagsSchema,
@@ -153,11 +169,8 @@ const galleryCategorySchema = z
   });
 
 export const WorkCreateSchema = z.object({
-  title: z
-    .string({ required_error: "タイトルは必須です" })
-    .min(1, { message: "タイトルは必須です" })
-    .max(VARCHAR_MAX, { message: `タイトルは${VARCHAR_MAX}文字以内で入力してください` }),
-  description: z.string({ required_error: "説明は必須です" }).min(1, { message: "説明は必須です" }),
+  title: storedText("タイトルは必須です", `タイトルは${VARCHAR_MAX}文字以内で入力してください`),
+  description: storedText("説明は必須です"),
   category: galleryCategorySchema,
   tags: tagsSchema,
   image: optionalImageSchema,
@@ -193,10 +206,7 @@ const newsContentsSchema = z.custom<string | { text: string }>(
 );
 
 export const NewsCreateSchema = z.object({
-  title: z
-    .string({ required_error: newsRequiredMessage })
-    .min(1, { message: newsRequiredMessage })
-    .max(VARCHAR_MAX, { message: `タイトルは${VARCHAR_MAX}文字以内で入力してください` }),
+  title: storedText(newsRequiredMessage, `タイトルは${VARCHAR_MAX}文字以内で入力してください`),
   contents: newsContentsSchema,
   date: newsDateSchema,
   url: makeHttpUrlSchema("URLは http(s) 形式で入力してください").optional().nullable(),

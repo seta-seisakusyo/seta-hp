@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { Prisma } from "@prisma/client";
 import type { z } from "zod";
-import xss from "xss";
 import { auth } from "@/lib/auth";
 import {
   badRequestResponse,
@@ -91,36 +90,6 @@ export function parseAdminJson<T extends z.ZodTypeAny>(
   schema: T
 ): Promise<z.infer<T> | NextResponse> {
   return parseAuthorizedJson(req, schema, requireAdmin);
-}
-
-/**
- * タグ入力（配列 or カンマ区切り文字列）をサニタイズ済みのカンマ区切り文字列へ正規化する。
- */
-export function sanitizeTags(tags: unknown): string {
-  if (Array.isArray(tags)) {
-    return tags.map((t) => xss(String(t))).join(",");
-  }
-  return xss(typeof tags === "string" ? tags : "");
-}
-
-/** 任意テキスト: 値があればサニタイズ、なければ undefined（＝更新しない）。 */
-export function sanitizeOptionalText(value: string | undefined): string | undefined {
-  return value ? xss(value) : undefined;
-}
-
-/** null 許容テキスト（作成時）: 空なら null を保存する。 */
-export function sanitizeNullableText(value: string | null | undefined): string | null {
-  return value ? xss(value) : null;
-}
-
-/**
- * null 許容テキスト（更新時）:
- * undefined = キー未送信 → 列を更新しない / null・空文字 = 明示的なクリア → null を保存。
- */
-export function sanitizeOptionalNullableText(
-  value: string | null | undefined
-): string | null | undefined {
-  return value !== undefined ? (value ? xss(value) : null) : undefined;
 }
 
 /**

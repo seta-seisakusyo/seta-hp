@@ -5,8 +5,6 @@ import {
   handleApiError,
   isErrorResponse,
   parseEditorJson,
-  sanitizeOptionalText,
-  sanitizeTags,
 } from "@/lib/api-utils";
 import { WorkCreateSchema, WorkUpdateSchema } from "@/lib/validation";
 import {
@@ -15,7 +13,6 @@ import {
 } from "@/lib/managed-resource-route";
 import { collectImageUrls, deleteUnusedUploadedFiles } from "@/lib/uploaded-files";
 import { revalidateWorkPages } from "@/lib/cache-tags";
-import xss from "xss";
 
 // 制作事例一覧取得（公開用）
 export async function GET(req: NextRequest) {
@@ -61,10 +58,10 @@ export async function POST(req: NextRequest) {
 
     await prisma.work.create({
       data: {
-        title: xss(title),
-        description: xss(description),
+        title,
+        description,
         category,
-        tags: sanitizeTags(tags),
+        tags: tags ?? "",
         image: image || null,
         isPublished: isPublished !== false,
       },
@@ -98,10 +95,10 @@ export async function PUT(req: NextRequest) {
     await prisma.work.update({
       where: { id },
       data: {
-        title: sanitizeOptionalText(title),
-        description: sanitizeOptionalText(description),
+        title,
+        description,
         category,
-        tags: tags !== undefined ? sanitizeTags(tags) : undefined,
+        tags,
         image: image !== undefined ? (image || null) : undefined,
         isPublished,
       },

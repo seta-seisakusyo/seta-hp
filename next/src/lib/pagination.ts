@@ -1,3 +1,6 @@
+import { DATABASE_INT_MAX } from "./db-limits";
+import { parsePositiveId } from "./parse-id";
+
 const DEFAULT_LIMIT = 50;
 
 /**
@@ -17,12 +20,10 @@ export function parsePagination(searchParams: URLSearchParams): {
     return { page: 1, limit: undefined, skip: undefined };
   }
 
-  const rawPage = parseInt(pageParam || "1", 10);
-  const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
-
-  const rawLimit = limitParam ? parseInt(limitParam, 10) : DEFAULT_LIMIT;
-  const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(rawLimit, 100) : DEFAULT_LIMIT;
-
+  const limit = Math.min(parsePositiveId(limitParam) ?? DEFAULT_LIMIT, 100);
+  const requestedPage = parsePositiveId(pageParam) ?? 1;
+  // page自体が範囲内でも乗算結果がDBの整数範囲を超える場合がある。
+  const page = requestedPage <= Math.floor(DATABASE_INT_MAX / limit) + 1 ? requestedPage : 1;
   const skip = (page - 1) * limit;
 
   return { page, limit, skip };
