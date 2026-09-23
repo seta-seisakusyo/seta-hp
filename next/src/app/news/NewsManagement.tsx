@@ -40,7 +40,7 @@ const editNewsForm = (news: News): NewsForm => ({
 });
 
 const NewsManagement: React.FC<NewsManagementProps> = ({ session }) => {
-  const { items: newsList, loading, save, remove, pagination } = useCrudResource<News>({
+  const { items: newsList, loading, error, retry, save, remove, pagination } = useCrudResource<News>({
     endpoint: "/api/news",
     listKey: "news",
     label: "お知らせ",
@@ -48,7 +48,7 @@ const NewsManagement: React.FC<NewsManagementProps> = ({ session }) => {
   });
 
   const { canEdit, canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete } =
+  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
     useResourceDelete(remove);
 
   const saveNews = useCallback((form: NewsForm, id?: number) => save({
@@ -98,6 +98,8 @@ const NewsManagement: React.FC<NewsManagementProps> = ({ session }) => {
   return (
     <Box>
       <ResourceTable
+        error={error}
+        onRetry={retry}
         items={newsList}
         columns={columns}
         loading={loading}
@@ -123,6 +125,7 @@ const NewsManagement: React.FC<NewsManagementProps> = ({ session }) => {
 
       {/* 作成/編集ダイアログ */}
       <FormDialog
+        submitting={editor.isSaving}
         open={editor.dialogOpen}
         title={editor.selectedResource ? "お知らせ編集" : "お知らせ新規作成"}
         submitLabel={editor.selectedResource ? "更新" : "作成"}
@@ -164,6 +167,7 @@ const NewsManagement: React.FC<NewsManagementProps> = ({ session }) => {
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
+        submitting={isDeleting}
         open={deleteDialogOpen}
         title="お知らせを削除"
         onClose={cancelDelete}

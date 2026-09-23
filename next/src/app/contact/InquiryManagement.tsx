@@ -25,7 +25,7 @@ interface InquiryManagementProps {
 }
 
 const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
-  const { items: inquiries, loading, remove, pagination } = useCrudResource<Inquiry>({
+  const { items: inquiries, loading, error, retry, remove, pagination } = useCrudResource<Inquiry>({
     endpoint: "/api/email",
     listKey: "inquiries",
     label: "問い合わせ",
@@ -36,7 +36,7 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
 
   const { canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete } =
+  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
     useResourceDelete(remove);
 
   const columns: ResourceColumn<Inquiry>[] = [
@@ -81,6 +81,8 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
   return (
     <Box>
       <ResourceTable
+        error={error}
+        onRetry={retry}
         items={inquiries}
         columns={columns}
         loading={loading}
@@ -141,6 +143,7 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
+        submitting={isDeleting}
         open={deleteDialogOpen}
         title="問い合わせを削除"
         onClose={cancelDelete}

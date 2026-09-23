@@ -60,3 +60,10 @@ describe("parsePagination", () => {
     expect(parsePagination(params).skip).toBe(0);
   });
 });
+
+it.each(["1" + "0".repeat(307), "2147483647", "1e3", "2.5", "2abc"])("不正または乗算後に範囲外のページを先頭へ戻す: %s", (page) => {
+  expect(parsePagination(new URLSearchParams({ page, limit: "100" }))).toEqual({ page: 1, limit: 100, skip: 0 });
+});
+it("最大の有効なオフセットを範囲内で計算する", () => {
+  expect(parsePagination(new URLSearchParams("page=21474837&limit=100"))).toEqual({ page: 21474837, limit: 100, skip: 2147483600 });
+});
