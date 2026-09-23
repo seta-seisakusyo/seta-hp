@@ -93,3 +93,31 @@ describe("handleApiError", () => {
     expect(await response.json()).toEqual({ error: "既に存在します" });
   });
 });
+
+describe("JSON入力の型検証", () => {
+  it.each([null, [], 123, "text", true])("オブジェクト以外も例外にせず400で返す: %j", async (body) => {
+    const result = await parseJsonWithSchema(new Request("http://localhost/api/register", {
+      method: "POST", body: JSON.stringify(body),
+    }), RegistrationSchema);
+    expect(isErrorResponse(result)).toBe(true);
+    if (isErrorResponse(result)) expect(result.status).toBe(400);
+  });
+
+  it("fields指定では複数フィールドのエラーを既存の形式で返す", async () => {
+    const result = await parseJsonWithSchema(new Request("http://localhost/api/register", {
+      method: "POST", body: JSON.stringify({ name: "", email: "", password: "" }),
+    }), RegistrationSchema, "fields");
+    expect(isErrorResponse(result)).toBe(true);
+    if (isErrorResponse(result)) {
+      expect(result.status).toBe(400);
+      expect(await result.json()).toEqual({
+        success: false,
+        errors: {
+          name: "氏名を入力してください。",
+          email: "メールアドレスを入力してください。",
+          password: "パスワードは8文字以上で入力してください。",
+        },
+      });
+    }
+  });
+});

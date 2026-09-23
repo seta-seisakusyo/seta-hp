@@ -16,7 +16,8 @@ import {
 } from "@/lib/api-utils";
 import { reviewReplySelect } from "@/lib/review-comment-query";
 import { ReviewReplyCreateSchema } from "@/lib/review-validation";
-import { parseGuardedReviewId, parseReviewId } from "@/lib/reviewCommentsGuard";
+import { parsePositiveId } from "@/lib/parse-id";
+import { parseGuardedReviewId } from "@/lib/reviewCommentsGuard";
 import { NextRequest, NextResponse } from "next/server";
 
 const prisma = getPrismaClient();
@@ -52,7 +53,7 @@ export async function DELETE(
   const commentId = await parseGuardedReviewId(req, params);
   if (isErrorResponse(commentId)) return commentId;
 
-  const replyId = parseReviewId(req.nextUrl.searchParams.get("replyId"));
+  const replyId = parsePositiveId(req.nextUrl.searchParams.get("replyId"));
   if (!replyId) return badRequestResponse("replyId is required");
 
   try {

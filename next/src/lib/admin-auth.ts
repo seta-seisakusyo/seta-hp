@@ -3,38 +3,19 @@ import type { Session } from "next-auth";
 import { auth } from "@/lib/auth";
 import { isAdminRole, isEditorRole } from "@/lib/roles";
 
-/**
- * 管理ページ共通の認証ガード。
- * 未ログインは /login へ、ADMIN/EDITOR 以外はトップへリダイレクトする。
- */
-export async function requireAdminOrEditor(): Promise<Session> {
+async function requirePageRole(isAllowed: (role: unknown) => boolean): Promise<Session> {
   const session = await auth();
-
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (!isEditorRole(session.user.role)) {
-    redirect("/");
-  }
-
+  if (!session?.user) redirect("/login");
+  if (!isAllowed(session.user.role)) redirect("/");
   return session;
 }
 
-/**
- * ADMIN 限定ページのガード。
- * EDITOR にも見せたくない操作（外部サービスへの発信など）で使う。
- */
-export async function requireAdmin(): Promise<Session> {
-  const session = await auth();
+/** 未ログインは /login へ、ADMIN/EDITOR 以外はトップへリダイレクトする。 */
+export function requireAdminOrEditor(): Promise<Session> {
+  return requirePageRole(isEditorRole);
+}
 
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (!isAdminRole(session.user.role)) {
-    redirect("/");
-  }
-
-  return session;
+/** 外部サービスへの発信など、ADMIN 限定ページの認証ガード。 */
+export function requireAdmin(): Promise<Session> {
+  return requirePageRole(isAdminRole);
 }

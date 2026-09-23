@@ -98,10 +98,8 @@ export async function PUT(req: NextRequest) {
 
 // お知らせ削除
 export async function DELETE(req: NextRequest) {
-  const prisma = getPrismaClient();
   return deleteManagedResource(req, {
-    findById: (id) => prisma.news.findUnique({ where: { id }, select: { id: true } }),
-    deleteById: (id) => prisma.news.delete({ where: { id }, select: { id: true } }),
+    deleteById: (id) => getPrismaClient().news.delete({ where: { id }, select: { id: true } }),
     notFoundMessage: "指定されたお知らせが見つかりません",
     errorLog: "お知らせ削除エラー",
     errorMessage: "お知らせの削除に失敗しました",

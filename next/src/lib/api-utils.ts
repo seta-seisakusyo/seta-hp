@@ -10,8 +10,10 @@ import {
   internalErrorResponse,
   notFoundResponse,
   unauthorizedResponse,
+  validationErrorResponse,
 } from "@/lib/api-response";
 import { isAdminRole, isEditorRole } from "@/lib/roles";
+import { getValidationErrors } from "@/lib/validation";
 
 /**
  * 認証と権限をまとめて検証する。
@@ -39,32 +41,24 @@ export function requireAdmin(): Promise<Session | NextResponse> {
   return requireRole(isAdminRole, "管理者権限が必要です");
 }
 
-/**
- * リクエストボディの JSON パースを安全に行う。
- * 不正な JSON の場合は 400 エラーレスポンスを返す。
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function parseJsonBody(req: Request): Promise<any | NextResponse> {
-  try {
-    return await req.json();
-  } catch {
-    return NextResponse.json(
-      { error: "リクエストボディが不正です" },
-      { status: 400 }
-    );
-  }
-}
-
+/** JSONパースとスキーマ検証を行い、不正な入力は400で返す。 */
 export async function parseJsonWithSchema<T extends z.ZodTypeAny>(
   req: Request,
-  schema: T
+  schema: T,
+  errorFormat: "message" | "fields" = "message"
 ): Promise<z.infer<T> | NextResponse> {
-  const body = await parseJsonBody(req);
-  if (isErrorResponse(body)) return body;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequestResponse("リクエストボディが不正です");
+  }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return badRequestResponse(parsed.error.errors[0].message);
+    return errorFormat === "fields"
+      ? validationErrorResponse(getValidationErrors(parsed.error))
+      : badRequestResponse(parsed.error.issues[0].message);
   }
   return parsed.data;
 }
