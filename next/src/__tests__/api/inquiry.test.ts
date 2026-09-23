@@ -45,6 +45,23 @@ describe("問い合わせの入力検証", () => {
     }
   );
 
+  it.each([
+    { field: "name", value: "<".repeat(50), message: "氏名は50文字以内で入力してください。" },
+    { field: "inquiry", value: "<".repeat(500), message: "お問い合わせ内容は500文字以内で入力してください。" },
+  ])("サニタイズ後に上限を超える$fieldを400にし、保存・送信しない", async ({ field, value, message }) => {
+    const response = await submitInquiry(request({ ...valid, [field]: value }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ success: false, errors: { [field]: message } });
+    expect(mocks.createInquiry).not.toHaveBeenCalled();
+    expect(mocks.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("サニタイズ後ちょうど上限の氏名は保存できる", async () => {
+    const response = await submitInquiry(request({ ...valid, name: ">".repeat(12) + "aa" }));
+    expect(response.status).toBe(200);
+    expect(mocks.createInquiry.mock.calls[0][0].data.name).toBe("&gt;".repeat(12) + "aa");
+  });
+
   it("フィールドごとのエラー形式を維持する", async () => {
     const response = await submitInquiry(request({ name: "", email: "invalid", inquiry: "" }));
     expect(await response.json()).toEqual({

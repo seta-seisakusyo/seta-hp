@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getPrismaClient } from "@/lib/db";
-import { successResponse } from "@/lib/api-response";
+import { successResponse, validationErrorResponse } from "@/lib/api-response";
 import {
   handleApiError,
   isErrorResponse,
@@ -8,7 +8,7 @@ import {
   requireAdmin,
 } from "@/lib/api-utils";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { InquirySubmissionSchema } from "@/lib/validation";
+import { InquirySubmissionSchema, validateInquiry } from "@/lib/validation";
 import { deleteManagedResource } from "@/lib/managed-resource-route";
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
@@ -70,6 +70,10 @@ export async function POST(req: NextRequest) {
       phone: xss(inquiryData.phone || ""),
       inquiry: xss(inquiryData.inquiry),
     };
+
+    // HTMLエスケープで文字数が増えるため、保存する値にも同じ制約を適用する。
+    const errors = validateInquiry(sanitizedData);
+    if (Object.keys(errors).length > 0) return validationErrorResponse(errors);
 
     // ログイン中ユーザーのIDを取得（監査証跡用、未ログインならnull）
     const session = await auth();
