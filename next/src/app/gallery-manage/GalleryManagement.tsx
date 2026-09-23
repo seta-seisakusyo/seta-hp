@@ -52,7 +52,7 @@ const editWorkForm = (work: Work): WorkForm => ({
 });
 
 const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
-  const { items: works, loading, save, remove, pagination } = useCrudResource<Work>({
+  const { items: works, loading, error, retry, save, remove, pagination } = useCrudResource<Work>({
     endpoint: "/api/works",
     listUrl: "/api/works?includeUnpublished=true",
     listKey: "works",
@@ -62,7 +62,7 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
   const isMobile = useIsMobile();
 
   const { canEdit, canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete } =
+  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
     useResourceDelete(remove);
 
   const saveWork = useCallback((form: WorkForm, id?: number) => save({
@@ -117,6 +117,8 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
   return (
     <Box>
       <ResourceTable
+        error={error}
+        onRetry={retry}
         items={works}
         columns={columns}
         loading={loading}
@@ -143,6 +145,7 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
 
       {/* 作成/編集ダイアログ */}
       <FormDialog
+        submitting={editor.isSaving}
         open={editor.dialogOpen}
         title={editor.selectedResource ? "作品を編集" : "作品を追加"}
         submitLabel={editor.selectedResource ? "更新" : "追加"}
@@ -191,6 +194,7 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
+        submitting={isDeleting}
         open={deleteDialogOpen}
         title="作品を削除"
         message="この作品を削除してもよろしいですか？"

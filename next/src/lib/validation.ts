@@ -1,4 +1,6 @@
 import * as z from "zod";
+import xss from "xss";
+import { DATABASE_INT_MAX } from "./db-limits";
 import {
   VALID_GALLERY_CATEGORIES,
   VALID_PRODUCT_CATEGORIES,
@@ -6,72 +8,59 @@ import {
 } from "@/lib/constants/categories";
 import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
 
-// ValidationError型（後方互換性のため維持）
-interface ValidationError {
-  [key: string]: string;
-}
+const nameSchema = z
+  .string()
+  .min(1, { message: "氏名を入力してください。" })
+  .max(50, { message: "氏名は50文字以内で入力してください。" });
+const emailSchema = z
+  .string()
+  .min(1, { message: "メールアドレスを入力してください。" })
+  .email({ message: "有効なメールアドレスを入力してください。" });
 
-// 日本の電話番号パターン（固定電話・携帯電話両対応）
-// 例: 03-1234-5678, 090-1234-5678, 0120-123-456, 0761234567
+// 固定電話・携帯電話・空文字（任意入力）に対応する。
 const phoneRegex = /^(0[0-9]{1,4}[-]?[0-9]{1,4}[-]?[0-9]{3,4})?$/;
 
-// 問い合わせフォームのZodスキーマ
 export const InquirySchema = z.object({
-  name: z
-    .string()
-    .min(1, { message: "氏名を入力してください。" })
-    .max(50, { message: "氏名は50文字以内で入力してください。" }),
-  email: z
-    .string()
-    .min(1, { message: "メールアドレスを入力してください。" })
-    .email({ message: "有効なメールアドレスを入力してください。" }),
+  name: nameSchema,
+  email: emailSchema,
   phone: z
     .string()
     .regex(phoneRegex, { message: "有効な電話番号を入力してください。" })
-    .optional()
-    .or(z.literal("")),
+    .optional(),
   inquiry: z
     .string()
     .min(1, { message: "お問い合わせ内容を入力してください。" })
     .max(500, { message: "お問い合わせ内容は500文字以内で入力してください。" }),
 });
 
-type InquiryData = z.infer<typeof InquirySchema>;
+export const InquirySubmissionSchema = InquirySchema.extend({
+  // トークンの型と内容は、有効時のみ verifyRecaptchaToken で検証する。
+  recaptchaToken: z.unknown().optional(),
+});
 
-/**
- * 問い合わせデータのバリデーション（Zod版）
- * @param data バリデーション対象データ
- * @returns ValidationError オブジェクト（エラーがない場合は空オブジェクト）
- */
-export const validateInquiry = (data: InquiryData): ValidationError => {
-  const result = InquirySchema.safeParse(data);
+export const RecaptchaRequestSchema = z.object({
+  token: z.unknown().optional(),
+  expectedAction: z.string().optional(),
+});
 
-  if (result.success) {
-    return {};
+/** フォームとAPIで同じフィールドエラーを返す。各フィールドの先頭エラーを採用する。 */
+export function getValidationErrors(error: z.ZodError): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const field = String(issue.path[0] ?? "_form");
+    if (!errors[field]) errors[field] = issue.message;
   }
-
-  // Zodエラーを ValidationError 形式に変換
-  const errors: ValidationError = {};
-  for (const error of result.error.errors) {
-    const fieldName = error.path[0];
-    if (typeof fieldName === "string" && !errors[fieldName]) {
-      errors[fieldName] = error.message;
-    }
-  }
-
   return errors;
-};
+}
 
-// ユーザー登録フォームのバリデーションスキーマ
+export function validateInquiry(data: unknown): Record<string, string> {
+  const result = InquirySchema.safeParse(data);
+  return result.success ? {} : getValidationErrors(result.error);
+}
+
 export const RegistrationSchema = z.object({
-  name: z
-    .string()
-    .min(1, { message: "氏名を入力してください。" })
-    .max(50, { message: "氏名は50文字以内で入力してください。" }),
-  email: z
-    .string()
-    .min(1, { message: "メールアドレスを入力してください。" })
-    .email({ message: "有効なメールアドレスを入力してください。" }),
+  name: nameSchema,
+  email: emailSchema,
   password: z
     .string()
     .min(8, { message: "パスワードは8文字以上で入力してください。" })
@@ -83,13 +72,14 @@ export const RegistrationSchema = z.object({
 // ---------------------------------------------------------------------------
 // 商品・制作事例（管理API用）
 // POST/PUT で重複していた手続き的バリデーションを Zod に統一（#245）。
-// スキーマは検証のみを担い、XSS サニタイズや DB への整形は各ルート側で行う。
+// 保存する文字列へ変換してからDB制約を検証する。ルートで再変換しない。
 // ---------------------------------------------------------------------------
 
 const priceSchema = z.coerce
   .number({ invalid_type_error: "価格は0以上の整数を指定してください" })
   .int({ message: "価格は0以上の整数を指定してください" })
-  .min(0, { message: "価格は0以上の整数を指定してください" });
+  .min(0, { message: "価格は0以上の整数を指定してください" })
+  .max(DATABASE_INT_MAX, { message: `価格は${DATABASE_INT_MAX}以下で指定してください` });
 
 const productCategorySchema = z
   .string({ required_error: "カテゴリは必須です" })
@@ -105,6 +95,15 @@ const stockSchema = z
 
 // MySQL の String(VARCHAR(191)) 列に対応する最大長。超過は DB insert 前に 400 で弾く。
 const VARCHAR_MAX = 191;
+
+function storedText(requiredMessage: string, lengthMessage?: string) {
+  const input = z.string({ required_error: requiredMessage }).min(1, { message: requiredMessage });
+  const sanitized = input.transform((value) => xss(value));
+  return sanitized.pipe(lengthMessage
+    ? z.string().min(1, { message: requiredMessage }).max(VARCHAR_MAX, { message: lengthMessage })
+    : z.string().min(1, { message: requiredMessage }));
+}
+
 
 /**
  * http(s) スキームのみを許可するURLスキーマを生成する。
@@ -126,7 +125,10 @@ function makeHttpUrlSchema(message: string) {
         }
       },
       { message }
-    );
+    )
+    .transform((value) => xss(value))
+    .pipe(z.string().max(VARCHAR_MAX, { message }))
+    .transform((value) => value || null);
 }
 
 const purchaseUrlSchema = makeHttpUrlSchema("購入URLは http(s) 形式の有効なURLを指定してください");
@@ -134,17 +136,18 @@ const purchaseUrlSchema = makeHttpUrlSchema("購入URLは http(s) 形式の有�
 const idSchema = z
   .number({ required_error: "IDは必須です", invalid_type_error: "IDは必須です" })
   .int({ message: "IDは必須です" })
-  .positive({ message: "IDは必須です" });
+  .positive({ message: "IDは必須です" })
+  .max(DATABASE_INT_MAX, { message: "IDが範囲外です" });
 
-const tagsSchema = z.union([z.string(), z.array(z.unknown())]).optional();
-const optionalImageSchema = z.string().optional().nullable();
+const tagsSchema = z.union([z.string(), z.array(z.unknown())])
+  .transform((tags) => Array.isArray(tags) ? tags.map((tag) => xss(String(tag))).join(",") : xss(tags))
+  .pipe(z.string().max(VARCHAR_MAX, { message: `タグは${VARCHAR_MAX}文字以内で入力してください` }))
+  .optional();
+const optionalImageSchema = z.string().max(VARCHAR_MAX, { message: "画像URLが長すぎます" }).optional().nullable();
 
 export const ProductCreateSchema = z.object({
-  name: z
-    .string({ required_error: "名前は必須です" })
-    .min(1, { message: "名前は必須です" })
-    .max(VARCHAR_MAX, { message: `名前は${VARCHAR_MAX}文字以内で入力してください` }),
-  description: z.string({ required_error: "説明は必須です" }).min(1, { message: "説明は必須です" }),
+  name: storedText("名前は必須です", `名前は${VARCHAR_MAX}文字以内で入力してください`),
+  description: storedText("説明は必須です"),
   price: priceSchema,
   category: productCategorySchema,
   tags: tagsSchema,
@@ -166,11 +169,8 @@ const galleryCategorySchema = z
   });
 
 export const WorkCreateSchema = z.object({
-  title: z
-    .string({ required_error: "タイトルは必須です" })
-    .min(1, { message: "タイトルは必須です" })
-    .max(VARCHAR_MAX, { message: `タイトルは${VARCHAR_MAX}文字以内で入力してください` }),
-  description: z.string({ required_error: "説明は必須です" }).min(1, { message: "説明は必須です" }),
+  title: storedText("タイトルは必須です", `タイトルは${VARCHAR_MAX}文字以内で入力してください`),
+  description: storedText("説明は必須です"),
   category: galleryCategorySchema,
   tags: tagsSchema,
   image: optionalImageSchema,
@@ -206,10 +206,7 @@ const newsContentsSchema = z.custom<string | { text: string }>(
 );
 
 export const NewsCreateSchema = z.object({
-  title: z
-    .string({ required_error: newsRequiredMessage })
-    .min(1, { message: newsRequiredMessage })
-    .max(VARCHAR_MAX, { message: `タイトルは${VARCHAR_MAX}文字以内で入力してください` }),
+  title: storedText(newsRequiredMessage, `タイトルは${VARCHAR_MAX}文字以内で入力してください`),
   contents: newsContentsSchema,
   date: newsDateSchema,
   url: makeHttpUrlSchema("URLは http(s) 形式で入力してください").optional().nullable(),

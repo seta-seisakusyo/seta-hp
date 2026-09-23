@@ -80,7 +80,7 @@ const editProductForm = (product: Product): ProductForm => ({
 });
 
 const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
-  const { items: products, loading, save, remove, pagination } = useCrudResource<Product>({
+  const { items: products, loading, error, retry, save, remove, pagination } = useCrudResource<Product>({
     endpoint: "/api/products",
     listUrl: "/api/products?includeUnpublished=true",
     listKey: "products",
@@ -90,7 +90,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
   const isMobile = useIsMobile();
 
   const { canEdit, canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete } =
+  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
     useResourceDelete(remove);
 
   const saveProduct = useCallback((form: ProductForm, id?: number) => save({
@@ -168,6 +168,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
   return (
     <Box>
       <ResourceTable
+        error={error}
+        onRetry={retry}
         items={products}
         columns={columns}
         loading={loading}
@@ -194,6 +196,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
 
       {/* 作成/編集ダイアログ */}
       <FormDialog
+        submitting={editor.isSaving}
         open={editor.dialogOpen}
         title={editor.selectedResource ? "商品を編集" : "商品を作成"}
         submitLabel={editor.selectedResource ? "更新" : "作成"}
@@ -281,6 +284,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
+        submitting={isDeleting}
         open={deleteDialogOpen}
         title="商品を削除"
         message="この商品を削除してもよろしいですか？"

@@ -12,56 +12,56 @@ export function isAbortError(error: unknown): boolean {
   );
 }
 
-/**
- * クライアント側 fetch の共通ヘルパ。
- * 「JSON で送って、失敗なら data.error を Error として投げる」定型を一元化する。
- */
+async function readJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
+  if (response.ok && response.status === 204) return null as T;
+
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    throw new Error(fallbackMessage);
+  }
+
+  if (!response.ok) {
+    const message = typeof data === "object" && data !== null && "error" in data
+      ? data.error
+      : undefined;
+    throw new Error(typeof message === "string" && message ? message : fallbackMessage);
+  }
+
+  return data as T;
+}
+
+/** JSON送信と、HTTPエラー・不正なJSON応答の処理を共通化する。 */
 export async function apiJson<T = unknown>(
   url: string,
   options?: ApiJsonOptions
 ): Promise<T> {
   const { body, ...requestOptions } = options ?? {};
   const headers = new Headers(requestOptions.headers);
-  if (body !== undefined) {
-    headers.set("Content-Type", "application/json");
-  }
+  if (body !== undefined) headers.set("Content-Type", "application/json");
 
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     ...requestOptions,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const message = (data as { error?: string } | null)?.error;
-    throw new Error(message || "リクエストに失敗しました");
-  }
-
-  return data as T;
+  return readJsonResponse<T>(response, "リクエストに失敗しました");
 }
 
-/**
- * 画像アップロード（/api/upload）の共通処理。
- * ImageUpload / MultiImageUpload で重複していた FormData POST を一元化。
- * 成功時はアップロード先 URL を返し、失敗時はサーバーの error メッセージで throw する。
- */
+/** 画像アップロード。成功応答にURLが含まれることも検証する。 */
 export async function uploadImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
+  const response = await fetch("/api/upload", { method: "POST", body: formData });
+  const data = await readJsonResponse<unknown>(response, "アップロードに失敗しました");
 
-  const res = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
-  });
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const message = (data as { error?: string } | null)?.error;
-    throw new Error(message || "アップロードに失敗しました");
+  if (
+    typeof data !== "object" || data === null || !("url" in data) ||
+    typeof data.url !== "string" || !data.url.trim()
+  ) {
+    throw new Error("アップロード先URLを取得できませんでした");
   }
-
-  return (data as { url: string }).url;
+  return data.url;
 }

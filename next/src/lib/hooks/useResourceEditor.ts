@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useReducer } from "react";
+import { usePendingAction } from "./usePendingAction";
 
 export interface ResourceEditorState<T, FormState> {
   dialogOpen: boolean;
@@ -42,6 +43,7 @@ export function useResourceEditor<T extends { id: number }, FormState>({
   editForm,
   save,
 }: UseResourceEditorOptions<T, FormState>) {
+  const { isPending, isRunning, run } = usePendingAction();
   const [state, dispatch] = useReducer(resourceEditorReducer<T, FormState>, {
     dialogOpen: false,
     selectedResource: null,
@@ -49,28 +51,32 @@ export function useResourceEditor<T extends { id: number }, FormState>({
   });
 
   const openCreate = useCallback(() => {
+    if (isRunning()) return;
     dispatch({ type: "create", form: createForm() });
-  }, [createForm]);
+  }, [createForm, isRunning]);
 
   const openEdit = useCallback((resource: T) => {
+    if (isRunning()) return;
     dispatch({ type: "edit", resource, form: editForm(resource) });
-  }, [editForm]);
+  }, [editForm, isRunning]);
 
   const close = useCallback(() => {
+    if (isRunning()) return;
     dispatch({ type: "close", form: createForm() });
-  }, [createForm]);
+  }, [createForm, isRunning]);
 
   const setField = useCallback(<K extends keyof FormState>(field: K, value: FormState[K]) => {
+    if (isRunning()) return;
     dispatch({ type: "set-field", field, value });
-  }, []);
+  }, [isRunning]);
 
-  const submit = useCallback(async () => {
+  const submit = useCallback(() => run(async () => {
     const ok = await save(state.form, state.selectedResource?.id);
     if (ok) {
       dispatch({ type: "close", form: createForm() });
     }
     return ok;
-  }, [createForm, save, state.form, state.selectedResource]);
+  }), [createForm, run, save, state.form, state.selectedResource]);
 
-  return { ...state, openCreate, openEdit, close, setField, submit };
+  return { ...state, isSaving: isPending, openCreate, openEdit, close, setField, submit };
 }

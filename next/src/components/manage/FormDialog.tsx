@@ -14,6 +14,7 @@ interface Props {
   title: string;
   submitLabel: string;
   submitDisabled?: boolean;
+  submitting?: boolean;
   onClose: () => void;
   onSubmit: () => void;
   children: React.ReactNode;
@@ -25,20 +26,21 @@ export default function FormDialog({
   title,
   submitLabel,
   submitDisabled = false,
+  submitting = false,
   onClose,
   onSubmit,
   children,
 }: Props) {
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>{children}</Box>
+        <Box component="fieldset" disabled={submitting} sx={{ border: 0, p: 0, minWidth: 0, display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>{children}</Box>
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose}>キャンセル</Button>
-        <Button variant="contained" onClick={onSubmit} disabled={submitDisabled}>
-          {submitLabel}
+        <Button onClick={onClose} disabled={submitting}>キャンセル</Button>
+        <Button variant="contained" onClick={onSubmit} disabled={submitting || submitDisabled}>
+          {submitting ? "保存中..." : submitLabel}
         </Button>
       </DialogActions>
     </Dialog>

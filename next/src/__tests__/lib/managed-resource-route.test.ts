@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
@@ -58,7 +59,6 @@ describe("deleteManagedResource", () => {
   it("ADMIN認証、ID検証、削除、後処理を順に実行する", async () => {
     mockAuth.mockResolvedValue({ user: { role: "ADMIN" } } as never);
     const existing = { id: 7, image: "/uploads/old.webp" };
-    const findById = vi.fn().mockResolvedValue(existing);
     const deleteById = vi.fn().mockResolvedValue(existing);
     const afterDelete = vi.fn().mockResolvedValue(undefined);
 
@@ -68,7 +68,6 @@ describe("deleteManagedResource", () => {
         body: JSON.stringify({ id: 7 }),
       }),
       {
-        findById,
         deleteById,
         afterDelete,
         notFoundMessage: "見つかりません",
@@ -79,21 +78,23 @@ describe("deleteManagedResource", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true });
-    expect(findById).toHaveBeenCalledWith(7);
     expect(deleteById).toHaveBeenCalledWith(7);
     expect(afterDelete).toHaveBeenCalledWith(existing);
   });
 
-  it("対象がなければ削除せず404を返す", async () => {
+  it("削除対象がなければPrismaの結果を404へ変換する", async () => {
     mockAuth.mockResolvedValue({ user: { role: "ADMIN" } } as never);
-    const deleteById = vi.fn();
+    const deleteById = vi.fn().mockRejectedValue(new Prisma.PrismaClientKnownRequestError("missing", {
+      code: "P2025", clientVersion: "test",
+    }));
+    const afterDelete = vi.fn();
     const response = await deleteManagedResource(
       new NextRequest("http://localhost/api/news", {
         method: "DELETE",
         body: JSON.stringify({ id: 99 }),
       }),
       {
-        findById: vi.fn().mockResolvedValue(null),
+        afterDelete,
         deleteById,
         notFoundMessage: "見つかりません",
         errorLog: "削除エラー",
@@ -102,6 +103,29 @@ describe("deleteManagedResource", () => {
     );
 
     expect(response.status).toBe(404);
+    expect(afterDelete).not.toHaveBeenCalled();
+  });
+
+  it.each([null, "VIEWER", "EDITOR"])("権限不足なら削除しない: %s", async (role) => {
+    mockAuth.mockResolvedValue((role ? { user: { role } } : null) as never);
+    const deleteById = vi.fn();
+    const response = await deleteManagedResource(
+      new NextRequest("http://localhost/api/products", { method: "DELETE", body: '{"id":1}' }),
+      { deleteById, notFoundMessage: "なし", errorLog: "削除エラー", errorMessage: "失敗" }
+    );
+    expect(response.status).toBe(role ? 403 : 401);
     expect(deleteById).not.toHaveBeenCalled();
   });
+
+  it("不正なIDは削除前に拒否する", async () => {
+    mockAuth.mockResolvedValue({ user: { role: "ADMIN" } } as never);
+    const deleteById = vi.fn();
+    const response = await deleteManagedResource(
+      new NextRequest("http://localhost/api/products", { method: "DELETE", body: '{"id":0}' }),
+      { deleteById, notFoundMessage: "なし", errorLog: "削除エラー", errorMessage: "失敗" }
+    );
+    expect(response.status).toBe(400);
+    expect(deleteById).not.toHaveBeenCalled();
+  });
+
 });

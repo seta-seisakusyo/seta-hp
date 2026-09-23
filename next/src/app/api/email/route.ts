@@ -4,12 +4,12 @@ import { successResponse, validationErrorResponse } from "@/lib/api-response";
 import {
   handleApiError,
   isErrorResponse,
-  parseJsonBody,
   parseJsonWithSchema,
   requireAdmin,
 } from "@/lib/api-utils";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
-import { RequiredIdSchema, validateInquiry } from "@/lib/validation";
+import { InquirySubmissionSchema, validateInquiry } from "@/lib/validation";
+import { deleteManagedResource } from "@/lib/managed-resource-route";
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const { limited } = await enforceRateLimit(req, "contact", RATE_LIMITS.contact);
     if (limited) return limited;
 
-    const inquiryData = await parseJsonBody(req);
+    const inquiryData = await parseJsonWithSchema(req, InquirySubmissionSchema, "fields");
     if (isErrorResponse(inquiryData)) return inquiryData;
 
     // 🔹 reCAPTCHA検証（有効時のみ、送信処理と同一ハンドラ内で実施）
@@ -63,19 +63,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 🔹 XSS対策
+    // 型と文字数の検証後に、表示・メール向けのサニタイズを行う。
     const sanitizedData = {
-      name: xss(inquiryData.name || ""),
-      email: xss(inquiryData.email || ""),
+      name: xss(inquiryData.name),
+      email: xss(inquiryData.email),
       phone: xss(inquiryData.phone || ""),
-      inquiry: xss(inquiryData.inquiry || ""),
+      inquiry: xss(inquiryData.inquiry),
     };
 
-    // 🔹 バリデーション
-    const validateResult = validateInquiry(sanitizedData);
-    if (Object.keys(validateResult).length > 0) {
-      return validationErrorResponse(validateResult);
-    }
+    // HTMLエスケープで文字数が増えるため、保存する値にも同じ制約を適用する。
+    const errors = validateInquiry(sanitizedData);
+    if (Object.keys(errors).length > 0) return validationErrorResponse(errors);
 
     // ログイン中ユーザーのIDを取得（監査証跡用、未ログインならnull）
     const session = await auth();
@@ -184,26 +182,10 @@ export async function GET(req: NextRequest) {
  * ✅ 問い合わせ削除（ADMIN必須）
  */
 export async function DELETE(req: NextRequest) {
-  try {
-    // 認証・権限チェック（ADMINのみ）
-    const session = await requireAdmin();
-    if (isErrorResponse(session)) return session;
-
-    const parsed = await parseJsonWithSchema(req, RequiredIdSchema);
-    if (isErrorResponse(parsed)) return parsed;
-    const { id } = parsed;
-
-    await prisma.inquiry.delete({
-      where: { id },
-      select: { id: true },
-    });
-    return successResponse();
-  } catch (error) {
-    // 存在しないIDの削除は handleApiError が P2025 → 404 に変換する
-    return handleApiError(error, {
-      log: "問い合わせ削除エラー",
-      message: "削除に失敗しました",
-      notFoundMessage: "指定された問い合わせが見つかりません",
-    });
-  }
+  return deleteManagedResource(req, {
+    deleteById: (id) => prisma.inquiry.delete({ where: { id }, select: { id: true } }),
+    notFoundMessage: "指定された問い合わせが見つかりません",
+    errorLog: "問い合わせ削除エラー",
+    errorMessage: "削除に失敗しました",
+  });
 }

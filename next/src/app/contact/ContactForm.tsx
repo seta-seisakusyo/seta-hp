@@ -1,6 +1,7 @@
 "use client";
 
 import { validateInquiry } from "@/lib/validation";
+import { apiJson } from "@/lib/api-client";
 import { CheckCircle, Error } from "@mui/icons-material";
 import {
   Box,
@@ -133,12 +134,10 @@ export default function ContactForm({ recaptchaEnabled }: ContactFormProps) {
         ? await executeRecaptcha("contact_form")
         : undefined;
 
-      const emailRes = await fetch("/api/email", {
+      const emailData = await apiJson<{ success: boolean }>("/api/email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, recaptchaToken }),
+        body: { ...formData, recaptchaToken },
       });
-      const emailData = await emailRes.json();
 
       if (emailData.success) {
         setModalContent("success");
@@ -286,7 +285,7 @@ export default function ContactForm({ recaptchaEnabled }: ContactFormProps) {
         </Box>
       </SectionContainer>
 
-      <Modal open={isModalOpen} onClose={closeModal}>
+      <Modal open={isModalOpen} onClose={modalContent === "loading" ? undefined : closeModal}>
         <Box
           sx={{
             position: "absolute",

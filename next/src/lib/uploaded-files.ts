@@ -12,89 +12,72 @@ const UPLOAD_PATH_PREFIX = "/uploads/";
 
 function getUploadFileName(value: string | null | undefined): string | null {
   const normalized = normalizeImageUrl(value);
-  if (!normalized) return null;
+  // 外部URLの /uploads/ はローカルファイルとして扱わない。
+  if (!normalized?.startsWith(UPLOAD_PATH_PREFIX)) return null;
 
-  let pathname: string;
   try {
-    pathname = new URL(normalized, "http://localhost").pathname;
+    const { pathname } = new URL(normalized, "http://localhost");
+    if (!pathname.startsWith(UPLOAD_PATH_PREFIX)) return null;
+
+    const fileName = decodeURIComponent(pathname.slice(UPLOAD_PATH_PREFIX.length));
+    if (!fileName || /[/\\\0]/.test(fileName) || fileName === "." || fileName === "..") {
+      return null;
+    }
+    return fileName;
   } catch {
+    // 壊れたパーセントエンコードなど、過去データの不正URLは掃除対象から外す。
     return null;
   }
-
-  if (!pathname.startsWith(UPLOAD_PATH_PREFIX)) return null;
-
-  const fileName = decodeURIComponent(pathname.slice(UPLOAD_PATH_PREFIX.length));
-  if (!fileName || fileName.includes("/") || fileName.includes("\\") || fileName === "." || fileName === "..") {
-    return null;
-  }
-
-  return fileName;
-}
-
-function getUploadUrl(value: string | null | undefined): string | null {
-  const fileName = getUploadFileName(value);
-  return fileName ? `${UPLOAD_PATH_PREFIX}${fileName}` : null;
-}
-
-function getUploadFilePath(value: string): string | null {
-  const fileName = getUploadFileName(value);
-  if (!fileName) return null;
-
-  const uploadDir = path.resolve(process.cwd(), "public", "uploads");
-  const filePath = path.resolve(uploadDir, fileName);
-  if (!filePath.startsWith(`${uploadDir}${path.sep}`)) return null;
-
-  return filePath;
 }
 
 export function collectImageUrls(record: ImageRecord): string[] {
   const urls = new Set<string>();
-
   if (record.image) urls.add(record.image);
-
   if (Array.isArray(record.images)) {
     for (const image of record.images) {
       if (typeof image === "string") urls.add(image);
     }
   }
-
   return [...urls];
 }
 
-async function getReferencedUploadUrls(prisma: PrismaClient): Promise<Set<string>> {
+function collectUploadFileNames(urls: string[]): Set<string> {
+  const names = new Set<string>();
+  for (const url of urls) {
+    const name = getUploadFileName(url);
+    if (name) names.add(name);
+  }
+  return names;
+}
+
+async function getReferencedUploadFileNames(prisma: PrismaClient): Promise<Set<string>> {
   const [products, works] = await Promise.all([
     prisma.product.findMany({ select: { images: true } }),
     prisma.work.findMany({ select: { image: true } }),
   ]);
-
-  const referenced = new Set<string>();
-  for (const record of [...products, ...works]) {
-    for (const image of collectImageUrls(record)) {
-      const uploadUrl = getUploadUrl(image);
-      if (uploadUrl) referenced.add(uploadUrl);
-    }
-  }
-
-  return referenced;
+  return collectUploadFileNames([...products, ...works].flatMap(collectImageUrls));
 }
 
+/** 保存・削除後の後片付け。参照確認に失敗した場合はファイルを残す。 */
 export async function deleteUnusedUploadedFiles(prisma: PrismaClient, urls: string[]): Promise<void> {
-  const candidates = new Set<string>();
-  for (const url of urls) {
-    const uploadUrl = getUploadUrl(url);
-    if (uploadUrl) candidates.add(uploadUrl);
-  }
-
+  const candidates = collectUploadFileNames(urls);
   if (candidates.size === 0) return;
 
-  const referenced = await getReferencedUploadUrls(prisma);
+  let referenced: Set<string>;
+  try {
+    referenced = await getReferencedUploadFileNames(prisma);
+  } catch (error) {
+    console.error("Failed to check uploaded file references:", error);
+    return;
+  }
+
+  const uploadDir = path.resolve(process.cwd(), "public", "uploads");
   await Promise.all(
     [...candidates]
-      .filter((url) => !referenced.has(url))
-      .map(async (url) => {
-        const filePath = getUploadFilePath(url);
-        if (!filePath) return;
-
+      .filter((name) => !referenced.has(name))
+      .map(async (name) => {
+        // 検証済みのファイル名をそのまま使い、URLの二重デコードを避ける。
+        const filePath = path.join(uploadDir, name);
         try {
           await unlink(filePath);
         } catch (error) {

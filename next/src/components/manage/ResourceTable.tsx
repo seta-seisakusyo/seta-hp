@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Alert,
   Box,
   Button,
   Paper,
@@ -28,6 +29,8 @@ interface Props<T> {
   columns: ResourceColumn<T>[];
   loading: boolean;
   emptyMessage: string;
+  error?: string | null;
+  onRetry?: () => void;
   /** 指定時のみ「新規作成」ボタンを表示 */
   onCreate?: () => void;
   /** 指定時のみ「操作」列を表示（セルの中身を返す） */
@@ -49,6 +52,8 @@ export default function ResourceTable<T extends { id: number }>({
   columns,
   loading,
   emptyMessage,
+  error,
+  onRetry,
   onCreate,
   actions,
   pagination,
@@ -61,6 +66,10 @@ export default function ResourceTable<T extends { id: number }>({
         <Typography>読み込み中...</Typography>
       </Box>
     );
+  }
+
+  if (error) {
+    return <Alert severity="error" action={onRetry && <Button onClick={() => onRetry()}>再試行</Button>}>{error}</Alert>;
   }
 
   const visibleColumns = columns.filter((c) => !(isMobile && c.hideOnMobile));

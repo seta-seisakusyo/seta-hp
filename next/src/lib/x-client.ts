@@ -18,14 +18,14 @@ const POST_ENDPOINT = `${X_API_BASE}/tweets`;
 const MEDIA_ENDPOINT = `${X_API_BASE}/media/upload`;
 
 
-export interface XCredentials {
+interface XCredentials {
   apiKey: string;
   apiSecret: string;
   accessToken: string;
   accessTokenSecret: string;
 }
 
-export interface XPostResult {
+interface XPostResult {
   success: boolean;
   /** 失敗時にAPIが返すべきHTTPステータス（成功時は200） */
   status: number;

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { Prisma } from "@prisma/client";
 import type { z } from "zod";
-import xss from "xss";
 import { auth } from "@/lib/auth";
 import {
   badRequestResponse,
@@ -10,8 +9,10 @@ import {
   internalErrorResponse,
   notFoundResponse,
   unauthorizedResponse,
+  validationErrorResponse,
 } from "@/lib/api-response";
 import { isAdminRole, isEditorRole } from "@/lib/roles";
+import { getValidationErrors } from "@/lib/validation";
 
 /**
  * 認証と権限をまとめて検証する。
@@ -39,32 +40,24 @@ export function requireAdmin(): Promise<Session | NextResponse> {
   return requireRole(isAdminRole, "管理者権限が必要です");
 }
 
-/**
- * リクエストボディの JSON パースを安全に行う。
- * 不正な JSON の場合は 400 エラーレスポンスを返す。
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function parseJsonBody(req: Request): Promise<any | NextResponse> {
-  try {
-    return await req.json();
-  } catch {
-    return NextResponse.json(
-      { error: "リクエストボディが不正です" },
-      { status: 400 }
-    );
-  }
-}
-
+/** JSONパースとスキーマ検証を行い、不正な入力は400で返す。 */
 export async function parseJsonWithSchema<T extends z.ZodTypeAny>(
   req: Request,
-  schema: T
+  schema: T,
+  errorFormat: "message" | "fields" = "message"
 ): Promise<z.infer<T> | NextResponse> {
-  const body = await parseJsonBody(req);
-  if (isErrorResponse(body)) return body;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequestResponse("リクエストボディが不正です");
+  }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return badRequestResponse(parsed.error.errors[0].message);
+    return errorFormat === "fields"
+      ? validationErrorResponse(getValidationErrors(parsed.error))
+      : badRequestResponse(parsed.error.issues[0].message);
   }
   return parsed.data;
 }
@@ -97,36 +90,6 @@ export function parseAdminJson<T extends z.ZodTypeAny>(
   schema: T
 ): Promise<z.infer<T> | NextResponse> {
   return parseAuthorizedJson(req, schema, requireAdmin);
-}
-
-/**
- * タグ入力（配列 or カンマ区切り文字列）をサニタイズ済みのカンマ区切り文字列へ正規化する。
- */
-export function sanitizeTags(tags: unknown): string {
-  if (Array.isArray(tags)) {
-    return tags.map((t) => xss(String(t))).join(",");
-  }
-  return xss(typeof tags === "string" ? tags : "");
-}
-
-/** 任意テキスト: 値があればサニタイズ、なければ undefined（＝更新しない）。 */
-export function sanitizeOptionalText(value: string | undefined): string | undefined {
-  return value ? xss(value) : undefined;
-}
-
-/** null 許容テキスト（作成時）: 空なら null を保存する。 */
-export function sanitizeNullableText(value: string | null | undefined): string | null {
-  return value ? xss(value) : null;
-}
-
-/**
- * null 許容テキスト（更新時）:
- * undefined = キー未送信 → 列を更新しない / null・空文字 = 明示的なクリア → null を保存。
- */
-export function sanitizeOptionalNullableText(
-  value: string | null | undefined
-): string | null | undefined {
-  return value !== undefined ? (value ? xss(value) : null) : undefined;
 }
 
 /**
