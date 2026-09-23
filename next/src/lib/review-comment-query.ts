@@ -1,5 +1,12 @@
 import { Prisma } from "@prisma/client";
 
+export const reviewReplySelect = {
+  id: true,
+  authorName: true,
+  content: true,
+  createdAt: true,
+} satisfies Prisma.ReviewCommentReplySelect;
+
 export const reviewCommentSelect = {
   id: true,
   xRatio: true,
@@ -10,18 +17,6 @@ export const reviewCommentSelect = {
   createdAt: true,
   replies: {
     orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      authorName: true,
-      content: true,
-      createdAt: true,
-    },
+    select: reviewReplySelect,
   },
 } satisfies Prisma.ReviewCommentSelect;
-
-export const reviewReplySelect = {
-  id: true,
-  authorName: true,
-  content: true,
-  createdAt: true,
-} satisfies Prisma.ReviewCommentReplySelect;

@@ -6,72 +6,59 @@ import {
 } from "@/lib/constants/categories";
 import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
 
-// ValidationError型（後方互換性のため維持）
-interface ValidationError {
-  [key: string]: string;
-}
+const nameSchema = z
+  .string()
+  .min(1, { message: "氏名を入力してください。" })
+  .max(50, { message: "氏名は50文字以内で入力してください。" });
+const emailSchema = z
+  .string()
+  .min(1, { message: "メールアドレスを入力してください。" })
+  .email({ message: "有効なメールアドレスを入力してください。" });
 
-// 日本の電話番号パターン（固定電話・携帯電話両対応）
-// 例: 03-1234-5678, 090-1234-5678, 0120-123-456, 0761234567
+// 固定電話・携帯電話・空文字（任意入力）に対応する。
 const phoneRegex = /^(0[0-9]{1,4}[-]?[0-9]{1,4}[-]?[0-9]{3,4})?$/;
 
-// 問い合わせフォームのZodスキーマ
 export const InquirySchema = z.object({
-  name: z
-    .string()
-    .min(1, { message: "氏名を入力してください。" })
-    .max(50, { message: "氏名は50文字以内で入力してください。" }),
-  email: z
-    .string()
-    .min(1, { message: "メールアドレスを入力してください。" })
-    .email({ message: "有効なメールアドレスを入力してください。" }),
+  name: nameSchema,
+  email: emailSchema,
   phone: z
     .string()
     .regex(phoneRegex, { message: "有効な電話番号を入力してください。" })
-    .optional()
-    .or(z.literal("")),
+    .optional(),
   inquiry: z
     .string()
     .min(1, { message: "お問い合わせ内容を入力してください。" })
     .max(500, { message: "お問い合わせ内容は500文字以内で入力してください。" }),
 });
 
-type InquiryData = z.infer<typeof InquirySchema>;
+export const InquirySubmissionSchema = InquirySchema.extend({
+  // トークンの型と内容は、有効時のみ verifyRecaptchaToken で検証する。
+  recaptchaToken: z.unknown().optional(),
+});
 
-/**
- * 問い合わせデータのバリデーション（Zod版）
- * @param data バリデーション対象データ
- * @returns ValidationError オブジェクト（エラーがない場合は空オブジェクト）
- */
-export const validateInquiry = (data: InquiryData): ValidationError => {
-  const result = InquirySchema.safeParse(data);
+export const RecaptchaRequestSchema = z.object({
+  token: z.unknown().optional(),
+  expectedAction: z.string().optional(),
+});
 
-  if (result.success) {
-    return {};
+/** フォームとAPIで同じフィールドエラーを返す。各フィールドの先頭エラーを採用する。 */
+export function getValidationErrors(error: z.ZodError): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const field = String(issue.path[0] ?? "_form");
+    if (!errors[field]) errors[field] = issue.message;
   }
-
-  // Zodエラーを ValidationError 形式に変換
-  const errors: ValidationError = {};
-  for (const error of result.error.errors) {
-    const fieldName = error.path[0];
-    if (typeof fieldName === "string" && !errors[fieldName]) {
-      errors[fieldName] = error.message;
-    }
-  }
-
   return errors;
-};
+}
 
-// ユーザー登録フォームのバリデーションスキーマ
+export function validateInquiry(data: unknown): Record<string, string> {
+  const result = InquirySchema.safeParse(data);
+  return result.success ? {} : getValidationErrors(result.error);
+}
+
 export const RegistrationSchema = z.object({
-  name: z
-    .string()
-    .min(1, { message: "氏名を入力してください。" })
-    .max(50, { message: "氏名は50文字以内で入力してください。" }),
-  email: z
-    .string()
-    .min(1, { message: "メールアドレスを入力してください。" })
-    .email({ message: "有効なメールアドレスを入力してください。" }),
+  name: nameSchema,
+  email: emailSchema,
   password: z
     .string()
     .min(8, { message: "パスワードは8文字以上で入力してください。" })

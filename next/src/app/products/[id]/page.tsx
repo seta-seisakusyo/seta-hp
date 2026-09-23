@@ -2,6 +2,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { Box } from "@mui/material";
 import type { Metadata } from "next";
+import { parsePositiveId } from "@/lib/parse-id";
 import { getPrismaClient } from "@/lib/db";
 import { buildProductJsonLd, buildBreadcrumbJsonLd } from "@/lib/structured-data";
 import { serializeJsonLd } from "@/lib/json-ld";
@@ -35,8 +36,8 @@ const getProduct = cache(async (id: number) => {
 // 非公開商品はページ本体もメタデータも同条件で弾く（title/description/OG の漏洩防止）。
 // getProduct の React cache() 越しに呼ぶため、metadata とページ本体でクエリは1回のまま。
 async function getPublishedProduct(rawId: string) {
-  const productId = parseInt(rawId, 10);
-  if (isNaN(productId)) return null;
+  const productId = parsePositiveId(rawId);
+  if (productId === null) return null;
   const product = await getProduct(productId);
   return product && product.isPublished ? product : null;
 }

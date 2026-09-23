@@ -16,7 +16,7 @@ export function normalizeImageUrl(value: string | null | undefined): string | nu
 
   try {
     const url = new URL(trimmed);
-    if (SAME_SITE_IMAGE_HOSTS.has(url.hostname)) {
+    if ((url.protocol === "http:" || url.protocol === "https:") && SAME_SITE_IMAGE_HOSTS.has(url.hostname)) {
       return `${url.pathname}${url.search}${url.hash}`;
     }
     return trimmed;

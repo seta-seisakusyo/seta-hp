@@ -5,7 +5,7 @@ import {
   parseAdminJson,
   requireEditor,
 } from "@/lib/api-utils";
-import { notFoundResponse, successResponse } from "@/lib/api-response";
+import { successResponse } from "@/lib/api-response";
 import { parsePagination } from "@/lib/pagination";
 import { RequiredIdSchema } from "@/lib/validation";
 
@@ -32,15 +32,14 @@ export async function getPublishedListParams(req: NextRequest): Promise<
 }
 
 interface DeleteManagedResourceOptions<T> {
-  findById: (id: number) => Promise<T | null>;
-  deleteById: (id: number) => Promise<unknown>;
+  deleteById: (id: number) => Promise<T>;
   afterDelete?: (resource: T) => Promise<void> | void;
   notFoundMessage: string;
   errorLog: string;
   errorMessage: string;
 }
 
-/** 管理リソース削除の認証・ID検証・存在確認・後処理・エラー応答を統一する。 */
+/** 管理リソース削除の認証・ID検証・削除・後処理・エラー応答を統一する。 */
 export async function deleteManagedResource<T>(
   req: NextRequest,
   options: DeleteManagedResourceOptions<T>
@@ -49,11 +48,8 @@ export async function deleteManagedResource<T>(
     const parsed = await parseAdminJson(req, RequiredIdSchema);
     if (isErrorResponse(parsed)) return parsed;
 
-    const existing = await options.findById(parsed.id);
-    if (!existing) return notFoundResponse(options.notFoundMessage);
-
-    await options.deleteById(parsed.id);
-    await options.afterDelete?.(existing);
+    const deleted = await options.deleteById(parsed.id);
+    await options.afterDelete?.(deleted);
 
     return successResponse();
   } catch (error) {

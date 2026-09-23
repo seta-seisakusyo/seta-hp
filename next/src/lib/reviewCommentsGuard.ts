@@ -5,6 +5,7 @@
  * 本番デプロイ時は環境変数を設定しないことで、エンドポイント自体が 404 を返す。
  */
 
+import { parsePositiveId } from "@/lib/parse-id";
 import { NextResponse } from "next/server";
 import { badRequestResponse } from "@/lib/api-response";
 import type { RateLimitConfig } from "@/lib/rate-limit";
@@ -30,13 +31,6 @@ export async function reviewWriteGuard(
   return limited;
 }
 
-/** 正の整数IDのみ許可する */
-export function parseReviewId(raw: string | null): number | null {
-  if (!raw) return null;
-  const id = Number(raw);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
-
 /**
  * 書き込みガードとパスパラメータのID検証をまとめて実行する。
  */
@@ -49,6 +43,6 @@ export async function parseGuardedReviewId(
   if (blocked) return blocked;
 
   const { id: rawId } = await params;
-  const id = parseReviewId(rawId);
+  const id = parsePositiveId(rawId);
   return id ?? badRequestResponse("invalid id");
 }
