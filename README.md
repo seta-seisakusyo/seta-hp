@@ -137,6 +137,7 @@ Docker Composeが展開する値はルートの `.env.example` を `.env` に、
 | `SSO_COOKIE_DOMAIN` / `SSO_COOKIE_SECURE` / `SSO_VERIFY_ENABLED` | Designer SSO設定（任意） |
 | `NEXT_PUBLIC_DESIGNER_URL` | Designerの公開URL（任意） |
 | `NEXT_PUBLIC_ENABLE_COMMENTS` | 社内レビューコメントの有効化フラグ（任意） |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Googleアナリティクス4 の測定ID `G-XXXXXXXXXX`（任意）。未設定なら計測タグを描画しない |
 
 ## 開発コマンド
 

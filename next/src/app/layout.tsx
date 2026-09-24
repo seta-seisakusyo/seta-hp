@@ -1,6 +1,7 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import ReviewOverlay from "@/components/ReviewOverlay";
+import Analytics from "@/components/Analytics";
 import theme from "@/theme/theme";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -167,6 +168,7 @@ export default function RootLayout({
               <Footer />
               {process.env.NEXT_PUBLIC_ENABLE_COMMENTS === "true" && <ReviewOverlay />}
             </div>
+            <Analytics />
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
