@@ -1,19 +1,24 @@
 name: Deploy_Production
 
 on:
+  # CIのゲートは feature/* → develop の PR に一本化する。
+  # 以前は develop への push と develop → main の PR でも走らせていたが、
+  # どちらもマージ前のPRで検証済みの内容を再実行するだけだった。
+  # さらに develop への push は連続マージ時に concurrency で片方がキャンセルされ、
+  # 「実行されたが何も検証していない」履歴だけが残っていた。
+  pull_request:
+    branches:
+      - develop
+  # main への push は本番デプロイの起点なので残す（ci → build-and-push → deploy）。
+  # ここでの ci はデプロイ直前の最終ゲートを兼ねる。
   push:
     branches:
       - main
-      - develop
-  pull_request:
-    branches:
-      - main
-      - develop
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # develop / PR は速いフィードバックのため進行中の実行をキャンセルするが、
+  # PR は速いフィードバックのため進行中の実行をキャンセルするが、
   # main（本番デプロイ）は途中キャンセルするとアプリ停止やマイグレーション中断で
   # 本番が中途半端な状態に残りうるため、キャンセルせずキュー実行する。
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -238,7 +243,7 @@ jobs:
             # 一時的な取得失敗でデプロイを落とさないよう `|| true` にするが、
             # 証明書が本当に無ければ直後のNginx起動とhealthcheckが失敗するので見逃しにはならない。
             echo "Ensuring SSL certificate is present and up to date..."
-            docker compose --profile certbot run --rm certbot || true
+            docker compose -f docker-compose.yml --profile certbot run --rm certbot || true
 
             # 同期したentrypoint/templateと更新済み証明書を確実に反映し、外部経路のhealthも確認する。
             echo "Recreating Nginx with the deployed configuration..."
