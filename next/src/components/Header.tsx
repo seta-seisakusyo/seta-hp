@@ -28,7 +28,6 @@ const UserAuthMenu = dynamic(() => import("@/components/UserAuthMenu"), {
 const NAV_LINKS = [
   { title: "カタログ", href: "/products" },
   { title: "ギャラリー", href: "/gallery" },
-  { title: "工房について", href: "/about" },
   { title: "お問い合わせ", href: "/contact" },
 ];
 
