@@ -139,6 +139,19 @@ Docker Composeが展開する値はルートの `.env.example` を `.env` に、
 | `NEXT_PUBLIC_ENABLE_COMMENTS` | 社内レビューコメントの有効化フラグ（任意） |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Googleアナリティクス4 の測定ID `G-XXXXXXXXXX`（任意）。未設定なら計測タグを描画しない |
 
+> **本番の測定IDは GitHub のリポジトリ変数 `NEXT_PUBLIC_GA_MEASUREMENT_ID` が唯一の設定箇所です。**
+>
+> `NEXT_PUBLIC_*` は `yarn build` の時点で存在すればHTML・JSへインライン展開され、実行時の環境変数より優先されます。
+> CI がリポジトリ変数を Docker のビルド引数として渡すため、静的生成ページ（`/about` `/company` `/legal`
+> `/privacy-policy` `/shipping`）も含めた全ページに反映されます。
+>
+> 逆にビルド時に未設定だと、インライン展開されず実行時参照のまま残ります。この場合
+> **動的レンダリングのページでしか計測されず、静的生成ページが丸ごと欠落します**（#128 で実際に発生）。
+> 本番サーバの `next/.env` に置く運用はこの落とし穴を踏むため採用していません。
+>
+> 測定IDを変更したときは、**再ビルドを伴うデプロイが必要**です。`.env` の書き換えと再起動では反映されません。
+
+
 ## 開発コマンド
 
 ```bash
