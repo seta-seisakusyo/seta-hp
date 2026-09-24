@@ -48,11 +48,12 @@ const nextConfig: NextConfig = {
         formats: ["image/avif", "image/webp"],
         // アップロード画像は一意なファイル名で実質不変なため長期キャッシュにする（#196）。
         minimumCacheTTL: 31536000,
-        localPatterns: [
-            {
-                pathname: "/uploads/**",
-            },
-        ],
+        // localPatterns は指定しない（＝ローカル画像を全許可するデフォルトのまま）。
+        // かつて standalone の /_next/image 400 対策として /uploads/** だけを列挙していたが、
+        // アップロード画像は isUploadedImageUrl() による unoptimized で最適化を迂回するため
+        // 現在 /_next/image を通らず、この列挙は機能していなかった。
+        // 一方で列挙を残すと public/ の静的画像が全て弾かれ、ヒーロー画像未設定時に
+        // フォールバックの /kaza-love_logo.png でトップページが 500 になる。
         remotePatterns: [
             {
                 protocol: "https",
