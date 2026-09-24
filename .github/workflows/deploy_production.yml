@@ -243,7 +243,7 @@ jobs:
             # 一時的な取得失敗でデプロイを落とさないよう `|| true` にするが、
             # 証明書が本当に無ければ直後のNginx起動とhealthcheckが失敗するので見逃しにはならない。
             echo "Ensuring SSL certificate is present and up to date..."
-            docker compose --profile certbot run --rm certbot || true
+            docker compose -f docker-compose.yml --profile certbot run --rm certbot || true
 
             # 同期したentrypoint/templateと更新済み証明書を確実に反映し、外部経路のhealthも確認する。
             echo "Recreating Nginx with the deployed configuration..."
