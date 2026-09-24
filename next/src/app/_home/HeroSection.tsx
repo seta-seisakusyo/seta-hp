@@ -115,48 +115,6 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
               <PillLink href="#products" showArrow>カタログを見る</PillLink>
             </Box>
 
-            {/* Stats */}
-            <Box
-              sx={{
-                display: "flex",
-                gap: { xs: 3, md: 4.5 },
-                mt: 7,
-                pt: 3.5,
-                borderTop: "1px solid",
-                borderColor: "divider",
-                flexWrap: "wrap",
-              }}
-            >
-              {[
-                { v: "3", l: "標準モデル" },
-                { v: "100%", l: "手仕上げ" },
-              ].map((s) => (
-                <Box key={s.l} sx={{ flex: 1, minWidth: 100, maxWidth: 140 }}>
-                  <Box
-                    sx={{
-                      fontFamily: FONT_DISPLAY,
-                      fontSize: "26px",
-                      fontWeight: 700,
-                      letterSpacing: "-0.02em",
-                      color: "text.primary",
-                      mb: 0.5,
-                    }}
-                  >
-                    {s.v}
-                  </Box>
-                  <Box
-                    sx={{
-                      fontSize: "11px",
-                      color: "text.secondary",
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {s.l}
-                  </Box>
-                </Box>
-              ))}
-            </Box>
           </Box>
 
           {/* Visual side */}
