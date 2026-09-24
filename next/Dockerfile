@@ -14,6 +14,14 @@ RUN npx prisma generate
 
 # ソースコードをコピーしてビルド
 COPY . .
+
+# NEXT_PUBLIC_* はビルド時に存在すればインライン展開され、実行時の環境変数より優先される。
+# 静的生成ページ（/about, /company, /legal, /privacy-policy, /shipping）のHTMLは
+# ここで確定するため、ビルド時に渡さないと実行時に .env を与えても反映されない（#128）。
+# 未指定なら空のまま＝計測タグを描画しない。
+ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=""
+ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
+
 RUN yarn build
 
 # ===== 本番ステージ（軽量）=====

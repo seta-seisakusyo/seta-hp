@@ -125,6 +125,11 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # 静的生成ページにも埋め込むため、NEXT_PUBLIC_* はビルド時に渡す必要がある（#128）。
+          # 値の出所はリポジトリ変数 NEXT_PUBLIC_GA_MEASUREMENT_ID。
+          # 測定IDはページソースに出る公開値なので secrets ではなく vars で管理する。
+          build-args: |
+            NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
