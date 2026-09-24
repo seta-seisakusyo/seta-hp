@@ -29,12 +29,16 @@ const securityHeaders = [
         key: "Content-Security-Policy",
         value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://www.recaptcha.net",
+            // googletagmanager: GA4 の gtag.js（#128）
+            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://www.googletagmanager.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
-            "img-src 'self' data: blob: https://kaza-love.com https://www.kaza-love.com https://setaseisakusyo.com https://*.googleusercontent.com",
+            // google-analytics / googletagmanager: GA4 が計測ビーコンを画像リクエストで送る経路（#128）
+            "img-src 'self' data: blob: https://kaza-love.com https://www.kaza-love.com https://setaseisakusyo.com https://*.googleusercontent.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com",
             "frame-src https://www.google.com https://www.recaptcha.net",
-            "connect-src 'self' https://www.google.com https://www.recaptcha.net",
+            // GA4 の送信先。リージョン別サブドメイン（region1.google-analytics.com 等）に振られるため
+            // ワイルドカードが必要。ここが漏れると gtag.js は読めても送信だけが落ち、無言で計測ゼロになる（#128）
+            "connect-src 'self' https://www.google.com https://www.recaptcha.net https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
         ].join("; "),
     },
 ];
