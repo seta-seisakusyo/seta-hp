@@ -1,7 +1,6 @@
 import { Box } from "@mui/material";
 import type { Metadata } from "next";
 import HeroSection from "./_home/HeroSection";
-import MarqueeSection from "./_home/MarqueeSection";
 import CatalogueSection from "./_home/CatalogueSection";
 import { getHomeProductData } from "./_home/getHomeProductData";
 import FeaturesSection from "./_home/FeaturesSection";
@@ -32,7 +31,6 @@ export default async function HomePage() {
   return (
     <Box sx={{ bgcolor: "#FFFFFF" }}>
       <HeroSection heroImage={heroImage} />
-      <MarqueeSection />
       <CatalogueSection products={catalogueProducts} />
       <FeaturesSection />
       <QuizTeaserSection />
