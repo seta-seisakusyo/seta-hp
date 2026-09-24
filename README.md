@@ -417,8 +417,8 @@ App RouterのMetadata Routeでリクエスト時に生成する。
 
 GitHub Actions による自動デプロイ：
 
-1. PR / develop push で migration再現、Lint、型検査、テスト、production build、Nginx HTTPS設定検証を実行
-2. main push（またはworkflow_dispatch）でDockerイメージをビルドし、ghcr.ioへpush
+1. `develop` 宛のPR（`feature/*` / `fix/*` → `develop`）で migration再現、Lint、型検査、テスト、production build、Nginx HTTPS設定検証を実行
+2. main push（またはworkflow_dispatch）で上記の検証を最終ゲートとして再実行し、Dockerイメージをビルドして ghcr.io へpush
 3. 本番で同期済みNginx設定を事前検証
 4. 旧アプリを停止して対象イメージからDB migrationを実行（短いメンテナンス時間）
 5. 新アプリの直接healthを確認
