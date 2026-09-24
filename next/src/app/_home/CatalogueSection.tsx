@@ -14,11 +14,8 @@ interface CatalogueSectionProps {
   products: ProductSummary[];
 }
 
-// 標準3型の英語ティア名。商品名から「N枚」を読み取り、Ref番号やバッジを導出する。
-const TIER_NAMES: Record<number, string> = { 8: "Starter", 16: "Collector", 25: "Master" };
-
+// 商品名から「N枚」を読み取り、Ref番号やバッジを導出する。
 type CatalogueMeta = {
-  en: string | null; // 英語ティア名（標準型のみ）
   ref: string | null; // Ref. 008 形式
   cap: string | null; // 8枚展示
   badge: string | null; // 8 Cards
@@ -28,15 +25,13 @@ type CatalogueMeta = {
 function catalogueMeta(name: string): CatalogueMeta {
   const match = name.match(/(\d+)\s*枚/);
   const count = match ? Number(match[1]) : null;
-  if (!count) return { en: null, ref: null, cap: null, badge: null, label: null };
+  if (!count) return { ref: null, cap: null, badge: null, label: null };
   const padded = String(count).padStart(3, "0");
-  const en = TIER_NAMES[count] ?? null;
   return {
-    en,
     ref: `Ref. ${padded}`,
     cap: `${count}枚展示`,
     badge: `${count} Cards`,
-    label: `${(en ?? "No.").toUpperCase()} · No. ${padded}`,
+    label: `No. ${padded}`,
   };
 }
 
@@ -80,7 +75,6 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
         >
           {products.map((p) => {
             const meta = catalogueMeta(p.name);
-            const title = meta.en ?? p.name;
             return (
               <Link
                 key={p.id}
@@ -165,23 +159,12 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
                         fontWeight: 700,
                         letterSpacing: "-0.02em",
                         color: "text.primary",
-                        mb: "6px",
+                        // 英語ティア名の行を廃止したので、その行が持っていた下余白をここへ寄せる。
+                        mb: "20px",
                       }}
                     >
-                      {title}
+                      {p.name}
                     </Box>
-                    {meta.en && (
-                      <Box
-                        sx={{
-                          fontSize: "12px",
-                          color: "text.secondary",
-                          letterSpacing: "0.08em",
-                          mb: "20px",
-                        }}
-                      >
-                        {p.name}
-                      </Box>
-                    )}
                     <ProductPriceRow price={p.price} paddingTop="18px" />
                   </Box>
                 </ProductCardFrame>
