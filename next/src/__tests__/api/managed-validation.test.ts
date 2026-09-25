@@ -43,3 +43,14 @@ it("部分更新では未送信項目を変更せず、URL・タグの明示ク�
   expect((await updateProduct(request({ id: 1, purchaseUrl: "", tags: [] }))).status).toBe(200);
   expect(mocks.product.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ name: undefined, purchaseUrl: null, tags: "" }) }));
 });
+it("Amazon URL を作成時に保存し、更新時に空文字で明示クリアできる", async () => {
+  const amazonUrl = "https://www.amazon.co.jp/dp/B0TEST1234";
+  expect((await createProduct(request({ ...resources[0].base, name: "商品", amazonUrl }))).status).toBe(200);
+  expect(mocks.product.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ amazonUrl }) }));
+  expect((await updateProduct(request({ id: 1, amazonUrl: "" }))).status).toBe(200);
+  expect(mocks.product.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ amazonUrl: null }) }));
+});
+it("Amazon 以外のURLを Amazon URL に入れると DB 到達前に400にする", async () => {
+  expect((await updateProduct(request({ id: 1, amazonUrl: "https://example.thebase.in/items/1" }))).status).toBe(400);
+  expect(mocks.product.update).not.toHaveBeenCalled();
+});

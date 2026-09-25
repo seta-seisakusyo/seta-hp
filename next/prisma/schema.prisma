@@ -65,6 +65,7 @@ model Product {
   isPublished Boolean  @default(true)
   isHeroImage Boolean  @default(false)
   purchaseUrl String?
+  amazonUrl   String?  @db.VarChar(512)
   works       WorkProduct[]
 
   @@index([category])

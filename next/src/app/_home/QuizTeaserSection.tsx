@@ -5,7 +5,7 @@ import PillLink from "@/components/PillLink";
 
 const QuizTeaserSection = () => {
   return (
-    <Box component="section" sx={{ bgcolor: "#FFFFFF", py: { xs: 6, md: 15 } }}>
+    <Box component="section" sx={{ bgcolor: "#FFFFFF", py: { xs: 6, md: 9 } }}>
       <SectionContainer>
         <Box
           sx={{
@@ -13,10 +13,10 @@ const QuizTeaserSection = () => {
             border: "1px solid",
             borderColor: "divider",
             borderRadius: "12px",
-            p: { xs: 3, md: 8 },
+            p: { xs: 3, md: 6 },
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-            gap: { xs: 3.5, md: 7.5 },
+            gap: { xs: 3.5, md: 5 },
             alignItems: "center",
           }}
         >

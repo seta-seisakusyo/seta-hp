@@ -26,7 +26,7 @@ const LegalPageLayout: React.FC<Props> = ({
       <Box
         component="section"
         sx={{
-          py: { xs: 6, md: 9 },
+          py: { xs: 4, md: 6 },
           borderBottom: "1px solid",
           borderColor: "divider",
           background:
@@ -82,7 +82,7 @@ const LegalPageLayout: React.FC<Props> = ({
       </Box>
 
       {/* Body */}
-      <Box component="section" sx={{ py: { xs: 6, md: 10 } }}>
+      <Box component="section" sx={{ py: { xs: 4, md: 6 } }}>
         <Container maxWidth="md" sx={{ maxWidth: "880px !important" }}>
           <Box
             sx={{
@@ -141,7 +141,7 @@ const LegalPageLayout: React.FC<Props> = ({
       {/* CTA */}
       <Box
           component="section"
-          sx={{ bgcolor: "background.alt", py: { xs: 7, md: 10 } }}
+          sx={{ bgcolor: "background.alt", py: { xs: 5, md: 7 } }}
         >
           <Container maxWidth="md" sx={{ maxWidth: "880px !important" }}>
             <Box

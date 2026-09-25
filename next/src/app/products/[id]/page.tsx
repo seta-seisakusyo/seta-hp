@@ -119,7 +119,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <Box sx={{ bgcolor: "#FFFFFF" }}>
-        <SectionContainer sx={{ py: { xs: 4, md: 8 } }}>
+        <SectionContainer sx={{ py: { xs: 4, md: 5 } }}>
           <ProductDetail product={product} />
         </SectionContainer>
         {showcaseWorks.length > 0 && <ProductShowcaseWorks works={showcaseWorks} />}

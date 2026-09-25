@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
           isPublished: true,
           isHeroImage: true,
           purchaseUrl: true,
+          amazonUrl: true,
         },
         orderBy: { createdAt: "desc" },
         take: limit,
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
       isPublished,
       isHeroImage,
       purchaseUrl,
+      amazonUrl,
     } = parsed;
 
     await prisma.product.create({
@@ -84,6 +86,7 @@ export async function POST(req: NextRequest) {
         isPublished: isPublished !== false,
         isHeroImage: isHeroImage === true,
         purchaseUrl: purchaseUrl ?? null,
+        amazonUrl: amazonUrl ?? null,
       },
       select: { id: true },
     });
@@ -114,6 +117,7 @@ export async function PUT(req: NextRequest) {
       isPublished,
       isHeroImage,
       purchaseUrl,
+      amazonUrl,
     } = parsed;
 
     // 画像変更時だけ旧画像を取得する。対象なしの更新は Prisma P2025 で404にする。
@@ -137,6 +141,7 @@ export async function PUT(req: NextRequest) {
         isPublished,
         isHeroImage,
         purchaseUrl,
+        amazonUrl,
       },
       select: { id: true },
     });

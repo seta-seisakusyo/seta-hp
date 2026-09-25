@@ -51,6 +51,7 @@ interface ProductForm {
   isPublished: boolean;
   isHeroImage: boolean;
   purchaseUrl: string;
+  amazonUrl: string;
 }
 
 const createProductForm = (): ProductForm => ({
@@ -64,6 +65,7 @@ const createProductForm = (): ProductForm => ({
   isPublished: true,
   isHeroImage: false,
   purchaseUrl: "",
+  amazonUrl: "",
 });
 
 const editProductForm = (product: Product): ProductForm => ({
@@ -77,6 +79,7 @@ const editProductForm = (product: Product): ProductForm => ({
   isPublished: product.isPublished,
   isHeroImage: product.isHeroImage,
   purchaseUrl: product.purchaseUrl || "",
+  amazonUrl: product.amazonUrl || "",
 });
 
 const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
@@ -104,6 +107,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
     isPublished: form.isPublished,
     isHeroImage: form.isHeroImage,
     purchaseUrl: form.purchaseUrl || null,
+    amazonUrl: form.amazonUrl || null,
   }, id), [save]);
   const editor = useResourceEditor<Product, ProductForm>({
     createForm: createProductForm,
@@ -266,6 +270,14 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
           onChange={(e) => editor.setField("purchaseUrl", e.target.value)}
           fullWidth
           placeholder="https://example.thebase.in/items/..."
+        />
+        <TextField
+          label="Amazon購入URL（任意）"
+          value={editor.form.amazonUrl}
+          onChange={(e) => editor.setField("amazonUrl", e.target.value)}
+          fullWidth
+          placeholder="https://www.amazon.co.jp/dp/..."
+          helperText="入力すると商品ページに「Amazon で購入する」ボタンが表示されます"
         />
         <ResourcePublishedField
           checked={editor.form.isPublished}

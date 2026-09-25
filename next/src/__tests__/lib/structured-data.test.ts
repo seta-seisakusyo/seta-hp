@@ -14,6 +14,7 @@ const baseProduct: Product = {
   isPublished: true,
   isHeroImage: false,
   purchaseUrl: null,
+  amazonUrl: null,
 };
 
 describe("buildProductJsonLd", () => {

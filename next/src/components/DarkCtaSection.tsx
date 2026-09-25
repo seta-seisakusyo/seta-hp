@@ -30,7 +30,7 @@ export default function DarkCtaSection({
   secondaryHref,
 }: DarkCtaSectionProps) {
   return (
-    <Box component="section" sx={{ bgcolor: "background.dark", color: "#FFFFFF", py: { xs: 6, md: 14 } }}>
+    <Box component="section" sx={{ bgcolor: "background.dark", color: "#FFFFFF", py: { xs: 6, md: 9 } }}>
       <SectionContainer>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr" }, gap: { xs: 4, md: 8 }, alignItems: "center" }}>
           <Box
