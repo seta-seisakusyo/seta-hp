@@ -5,6 +5,7 @@ import EmptyState from "@/components/EmptyState";
 import SectionContainer from "@/components/SectionContainer";
 import {
   CardTitle,
+  COMPACT_CARD_LAYOUT_SX,
   ProductCardFrame,
   ProductCardMedia,
   ProductPriceRow,
@@ -24,13 +25,13 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
   }
 
   return (
-    <Box component="section" sx={{ py: { xs: 8, md: 12 } }}>
+    <Box component="section" sx={{ py: { xs: 4, md: 12 } }}>
       <SectionContainer>
         <Box
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
-            gap: { xs: 3, md: 3.5 },
+            gap: { xs: 2, md: 3.5 },
           }}
         >
           {products.map((p) => {
@@ -46,6 +47,7 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
                 style={{ textDecoration: "none", color: "inherit" }}
               >
                 <ProductCardFrame>
+                  <Box sx={COMPACT_CARD_LAYOUT_SX}>
                   <ProductCardMedia
                     src={p.image}
                     alt={p.name}
@@ -62,7 +64,7 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
                           px: 1.25,
                           py: 0.625,
                           borderRadius: "999px",
-                          fontSize: "10px",
+                          fontSize: { xs: "11px", md: "10px" },
                           fontWeight: 700,
                           letterSpacing: "0.15em",
                           textTransform: "uppercase",
@@ -73,13 +75,15 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
                     )}
                   />
 
-                  <Box sx={{ p: "24px 24px 28px" }}>
+                  <Box sx={{ p: { xs: "16px 16px 18px", sm: "24px 24px 28px" } }}>
                     <Box
                       sx={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "baseline",
-                        mb: 1.5,
+                        flexWrap: "wrap",
+                        gap: 1,
+                        mb: { xs: 1, sm: 1.5 },
                       }}
                     >
                       <Box
@@ -95,7 +99,7 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
                       </Box>
                       <Box
                         sx={{
-                          fontSize: "11px",
+                          fontSize: "12px",
                           color: "text.secondary",
                           letterSpacing: "0.12em",
                           textTransform: "uppercase",
@@ -106,7 +110,8 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
                       </Box>
                     </Box>
                     <CardTitle>{p.name}</CardTitle>
-                    <ProductPriceRow price={p.price} />
+                    <ProductPriceRow price={p.price} paddingTop={{ xs: 1.5, sm: 2 }} />
+                  </Box>
                   </Box>
                 </ProductCardFrame>
               </Link>

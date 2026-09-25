@@ -17,7 +17,7 @@ interface Props {
  */
 const ProductShowcaseWorks: React.FC<Props> = ({ works }) => {
   return (
-    <Box component="section" sx={{ py: { xs: 8, md: 12 } }}>
+    <Box component="section" sx={{ py: { xs: 5, md: 12 } }}>
       <SectionContainer>
         <SectionHeader title="In Display" titleJa="この商品を使った展示例" marginBottom={6} />
 
@@ -43,7 +43,7 @@ const ProductShowcaseWorks: React.FC<Props> = ({ works }) => {
                 <Box sx={{ p: 2 }}>
                   <Box
                     sx={{
-                      fontSize: "11px",
+                      fontSize: "12px",
                       letterSpacing: "0.12em",
                       textTransform: "uppercase",
                       color: "text.secondary",

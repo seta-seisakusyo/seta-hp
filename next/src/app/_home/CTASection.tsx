@@ -10,7 +10,7 @@ const CTASection = () => {
       sx={{
         bgcolor: "background.dark",
         color: "#FFFFFF",
-        py: { xs: 10, md: 15 },
+        py: { xs: 6, md: 15 },
         textAlign: "center",
       }}
     >
@@ -38,7 +38,7 @@ const CTASection = () => {
             color: "rgba(255,255,255,0.7)",
             maxWidth: 480,
             mx: "auto",
-            mb: 5,
+            mb: { xs: 3.5, md: 5 },
             lineHeight: 1.7,
           }}
         >

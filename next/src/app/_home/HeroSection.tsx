@@ -17,7 +17,7 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
       component="section"
       sx={{
         position: "relative",
-        py: { xs: 7, md: 12.5 },
+        py: { xs: 4, md: 12.5 },
         background:
           "radial-gradient(ellipse at 80% 20%, rgba(180, 83, 9, 0.04), transparent 50%), #FFFFFF",
       }}
@@ -27,7 +27,7 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "1.05fr 1fr" },
-            gap: { xs: 6, md: 10 },
+            gap: { xs: 4, md: 10 },
             alignItems: "center",
           }}
         >
@@ -38,7 +38,7 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 1.5,
-                mb: 4,
+                mb: { xs: 2.5, md: 4 },
                 fontSize: "12px",
                 fontWeight: 600,
                 letterSpacing: "0.15em",
@@ -59,7 +59,7 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
                 lineHeight: 0.96,
                 letterSpacing: "-0.04em",
                 color: "text.primary",
-                mb: 4,
+                mb: { xs: 2.5, md: 4 },
                 "& em": { fontStyle: "normal", color: "primary.main" },
               }}
             >
@@ -102,7 +102,7 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
                 letterSpacing: "0.04em",
                 lineHeight: 1.85,
                 maxWidth: 460,
-                mb: 5,
+                mb: { xs: 3.5, md: 5 },
               }}
             >
               小さな個人工房から、一つずつ手作りでお届けします。
@@ -121,7 +121,8 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
           <Box
             sx={{
               position: "relative",
-              aspectRatio: "5 / 6",
+              // スマホは正方形にして、ファーストビュー後の縦の占有を抑える
+              aspectRatio: { xs: "1 / 1", md: "5 / 6" },
               borderRadius: "4px",
               overflow: "hidden",
               boxShadow:

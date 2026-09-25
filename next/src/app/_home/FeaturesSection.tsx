@@ -32,7 +32,7 @@ const FEATURES = [
 
 const FeaturesSection = () => {
   return (
-    <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 10, md: 15 } }}>
+    <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 6, md: 15 } }}>
       <SectionContainer>
         <SplitSectionHeading
           title={<>長く、<em>共に。</em></>}
@@ -58,7 +58,7 @@ const FeaturesSection = () => {
           }}
         >
           {FEATURES.map((f) => (
-            <Box key={f.num} sx={{ bgcolor: "#FFFFFF", p: { xs: 4, md: 5 } }}>
+            <Box key={f.num} sx={{ bgcolor: "#FFFFFF", p: { xs: 3, md: 5 } }}>
               <Box
                 sx={{
                   fontFamily: FONT_DISPLAY,

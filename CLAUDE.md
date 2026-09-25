@@ -49,6 +49,7 @@ seta-hp/
 │   │   │   ├── upload-validation.ts # 画像アップロード検証
 │   │   │   ├── validation.ts    # Zodバリデーション（統一済み）
 │   │   │   ├── site-config.ts   # サイトURL・名称・連絡先の定数
+│   │   │   ├── navigation.ts    # ヘッダー・スマホメニュー・フッター共通のリンク定義
 │   │   │   ├── x-client.ts      # X API クライアント
 │   │   │   ├── auth.ts          # NextAuth初期化
 │   │   │   └── db.ts            # Prismaクライアント
@@ -221,6 +222,9 @@ API の認可とJSON検証は `src/lib/api-utils.ts` の `parseEditorJson` / `pa
 ### Styling
 - MUIコンポーネント + カスタムテーマ (`src/theme/`)
 - `sx` と法務ページ共通レイアウト（`src/app/_legal/`）で表示規則を管理
+- スクロールバーは全要素で非表示、ページの横スクロールは `overflow-x: clip` で抑止（`globals.css`）
+- 日本語見出しは単語途中で改行しない（h1〜h4 は `globals.css`、それ以外のタイトルは `PHRASE_WRAP_SX`）
+- スマホ対応の方針: タップ領域は高さ 40〜48px、入力欄は 16px（iOS の自動ズーム防止）、商品カードは sm 未満で横並び（`COMPACT_CARD_LAYOUT_SX`）、商品詳細はスマホで購入バーを下部に固定
 
 ## 並行作業（git worktree）
 

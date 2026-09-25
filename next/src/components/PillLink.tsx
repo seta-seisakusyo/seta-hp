@@ -46,7 +46,7 @@ export default function PillLink({
   compact = false,
 }: PillLinkProps) {
   return (
-    <Link href={href} style={{ textDecoration: "none" }}>
+    <Link href={href} style={{ textDecoration: "none", display: "inline-block" }}>
       <Box
         component="span"
         sx={{

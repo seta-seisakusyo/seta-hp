@@ -1,20 +1,14 @@
 "use client";
 
 import MenuIcon from "@mui/icons-material/Menu";
-import {
-  AppBar,
-  Box,
-  Button,
-  IconButton,
-  Menu,
-  MenuItem,
-  Toolbar,
-} from "@mui/material";
+import { AppBar, Box, Button, IconButton, Toolbar } from "@mui/material";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState, type MouseEvent } from "react";
+import { useState } from "react";
+import MobileNavDrawer from "@/components/MobileNavDrawer";
 import SectionContainer from "@/components/SectionContainer";
 import XIcon from "@/components/XIcon";
+import { NAV_LINKS } from "@/lib/navigation";
 import { X_PROFILE_URL } from "@/lib/site-config";
 import { FONT_DISPLAY, HEADER_HEIGHTS } from "@/theme/themeConstants";
 
@@ -25,21 +19,8 @@ const UserAuthMenu = dynamic(() => import("@/components/UserAuthMenu"), {
   ssr: false,
 });
 
-const NAV_LINKS = [
-  { title: "カタログ", href: "/products" },
-  { title: "ギャラリー", href: "/gallery" },
-  { title: "お問い合わせ", href: "/contact" },
-];
-
 export default function Header() {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <>
@@ -68,7 +49,7 @@ export default function Header() {
             {/* Brand */}
             <Link
               href="/"
-              style={{ textDecoration: "none", color: "inherit" }}
+              style={{ textDecoration: "none", color: "inherit", display: "inline-flex", alignItems: "center", minHeight: 44 }}
             >
               <Box
                 sx={{
@@ -125,24 +106,23 @@ export default function Header() {
                         "&:hover": { color: "primary.main" },
                       }}
                     >
-                      {item.title}
+                      {item.label}
                     </Box>
                   </Link>
                 ))}
               </Box>
 
-              {/* X (Twitter) */}
+              {/* X (Twitter)。スマホはメニュー内に置き、ヘッダーはメニューボタンだけにする */}
               <Box
                 component="a"
                 href={X_PROFILE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
-                  display: "inline-flex",
+                  display: { xs: "none", md: "inline-flex" },
                   alignItems: "center",
                   justifyContent: "center",
                   color: "text.primary",
-                  p: { xs: 0.5, md: 0 },
                   transition: "color 0.2s",
                   "&:hover": { color: "primary.main" },
                 }}
@@ -174,36 +154,17 @@ export default function Header() {
               {/* 認証ボタン（遅延読み込み） */}
               <UserAuthMenu />
 
-              {/* Mobile: ハンバーガーメニュー */}
+              {/* Mobile: メニュー（全ページへの導線と購入CTAを1画面にまとめる） */}
               <IconButton
                 edge="end"
-                aria-label="menu"
-                onClick={handleMenuOpen}
-                sx={{ display: { xs: "inline-flex", md: "none" } }}
+                aria-label="メニューを開く"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(true)}
+                sx={{ display: { xs: "inline-flex", md: "none" }, width: 48, height: 48 }}
               >
                 <MenuIcon sx={{ color: "text.primary" }} />
               </IconButton>
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                sx={{ mt: 1 }}
-              >
-                {NAV_LINKS.map((item) => (
-                  <MenuItem key={item.href} onClick={handleMenuClose}>
-                    <Link
-                      href={item.href}
-                      style={{
-                        textDecoration: "none",
-                        color: "inherit",
-                        width: "100%",
-                      }}
-                    >
-                      {item.title}
-                    </Link>
-                  </MenuItem>
-                ))}
-              </Menu>
+              <MobileNavDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
             </Box>
           </Toolbar>
         </SectionContainer>
