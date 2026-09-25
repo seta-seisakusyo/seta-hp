@@ -81,7 +81,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 # 個別コマンド (nextディレクトリで実行)
 cd next
-yarn dev              # 開発サーバー (Turbopack)
+yarn dev              # 開発サーバー（webpack。Turbopack は Google Fonts の新URL形式を処理できず無効化）
 yarn build            # プロダクションビルド
 yarn lint             # ESLint
 yarn typecheck        # 型チェック (.next を再生成してから実行)
