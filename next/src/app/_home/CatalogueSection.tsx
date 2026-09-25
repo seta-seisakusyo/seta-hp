@@ -42,7 +42,7 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
   if (products.length === 0) return null;
 
   return (
-    <Box component="section" id="products" sx={{ py: { xs: 6, md: 15 } }}>
+    <Box component="section" id="products" sx={{ py: { xs: 6, md: 9 } }}>
       <SectionContainer>
         <SplitSectionHeading
           title={<>ライン<br /><em>ナップ。</em></>}

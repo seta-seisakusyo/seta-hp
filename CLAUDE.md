@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 運営事業者は個人事業所「**瀬田製作所**」(屋号)— 法的表記(特商法・プライバシーポリシー)では「販売業者: 瀬田製作所」と記載するが、サイト表示・SNS・OG情報・サブジェクト等のブランド面はすべて「飾Love」で統一する。
 ブランド表記ルール・タグライン「飾る愛、というのもある。」・歴史は [`docs/file/branding_kaza-love.md`](docs/file/branding_kaza-love.md) を参照。
 
-サイト内に決済・カート機能はない。商品ごとの `purchaseUrl`(外部の購入ページ)へ誘導し、未設定の商品はお問い合わせへ誘導する。
+サイト内に決済・カート機能はない。商品ごとの外部購入URL（`purchaseUrl` = BASE、`amazonUrl` = Amazon）へ誘導し、どちらも未設定の商品はお問い合わせへ誘導する。購入先の一覧は `getPurchaseLinks()`（`src/lib/types/product.ts`）で組み立てる。
 
 ## Tech Stack
 
@@ -134,7 +134,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 ## Database Models
 
 - **User**: ユーザー (ADMIN/EDITOR/VIEWER roles, cuid ID)
-- **Product**: 商品 (名前, 価格, カテゴリ, 複数画像 Json, 在庫状況, 公開フラグ, ヒーロー画像フラグ, 外部購入URL)
+- **Product**: 商品 (名前, 価格, カテゴリ, 複数画像 Json, 在庫状況, 公開フラグ, ヒーロー画像フラグ, 外部購入URL: BASE の `purchaseUrl` / Amazon の `amazonUrl`（VARCHAR(512)、amazon.co.jp 等のドメインのみ許可）)
 - **Work**: ギャラリー作品（`/gallery` に表示）
 - **WorkProduct**: 作品とそれに使った商品の紐づけ（多対多）。管理画面の作品編集で設定し、商品詳細⇔ギャラリーの相互リンクに使う。公開側は双方とも公開中のものだけ表示
 - **News**: お知らせ (日付, タイトル, JSON contents)

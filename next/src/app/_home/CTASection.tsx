@@ -10,7 +10,7 @@ const CTASection = () => {
       sx={{
         bgcolor: "background.dark",
         color: "#FFFFFF",
-        py: { xs: 6, md: 15 },
+        py: { xs: 6, md: 9 },
         textAlign: "center",
       }}
     >
@@ -52,7 +52,7 @@ const CTASection = () => {
             flexWrap: "wrap",
           }}
         >
-          <PillLink href="/products" tone="light" showArrow>BASEで購入する</PillLink>
+          <PillLink href="/products" tone="light" showArrow>購入する</PillLink>
           <PillLink href="/contact" tone="outline">特注品のご相談</PillLink>
         </Box>
       </SectionContainer>

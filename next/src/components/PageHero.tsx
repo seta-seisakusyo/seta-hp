@@ -45,7 +45,7 @@ export default function PageHero({
     <Box
       component="section"
       sx={{
-        py: { xs: 4, md: 11 },
+        py: { xs: 4, md: 7 },
         background:
           isContact
             ? "radial-gradient(ellipse at 20% 30%, rgba(180,83,9,0.04), transparent 50%), #FFFFFF"

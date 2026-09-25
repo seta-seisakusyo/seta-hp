@@ -155,7 +155,7 @@ export default function ContactForm({ recaptchaEnabled }: ContactFormProps) {
   }, [executeRecaptcha, recaptchaEnabled]);
 
   return (
-    <Box sx={{ bgcolor: "#FFFFFF", py: { xs: 6, md: 10 } }}>
+    <Box sx={{ bgcolor: "#FFFFFF", py: { xs: 4, md: 6 } }}>
       <SectionContainer>
         <Box sx={{ maxWidth: 720, mx: "auto" }}>
           <Box

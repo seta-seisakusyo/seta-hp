@@ -2,7 +2,13 @@ import { Box } from "@mui/material";
 import Link from "next/link";
 import ProductImageGallery from "../ProductImageGallery";
 import { getProductCategoryLabel, getStockMeta } from "@/lib/constants/categories";
-import { type Product, getProductInquiryHref, parseTags, parseProductImages } from "@/lib/types/product";
+import {
+  type Product,
+  getProductInquiryHref,
+  getPurchaseLinks,
+  parseTags,
+  parseProductImages,
+} from "@/lib/types/product";
 import { formatRefNumber } from "@/lib/format";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
@@ -16,6 +22,8 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
 
   const tags = parseTags(product.tags);
   const productImages = parseProductImages(product.images);
+  const purchaseLinks = getPurchaseLinks(product);
+  const hasPurchaseLinks = purchaseLinks.length > 0;
 
   const ref = formatRefNumber(product.id);
   const stockMeta = getStockMeta(product.stock);
@@ -222,39 +230,44 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
 
           {/* CTAs */}
           <Box sx={{ display: "flex", gap: 1.5, flexDirection: "column" }}>
-            {product.purchaseUrl && (
-              <Box>
-                <a
-                  href={product.purchaseUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: "none" }}
+            {purchaseLinks.map((link, i) => (
+              <a
+                key={link.store}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: "none" }}
+              >
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1.25,
+                    // 先頭の購入先（BASE、なければ Amazon）を銅色、2つ目を黒で区別する
+                    bgcolor: i === 0 ? "primary.main" : "background.dark",
+                    color: "#FFFFFF",
+                    width: "100%",
+                    px: 3,
+                    py: 2,
+                    borderRadius: "999px",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "background-color 0.2s, transform 0.2s",
+                    "&:hover": {
+                      bgcolor: i === 0 ? "primary.dark" : "primary.main",
+                      transform: "translateY(-1px)",
+                    },
+                  }}
                 >
-                  <Box
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 1.25,
-                      bgcolor: "primary.main",
-                      color: "#FFFFFF",
-                      width: "100%",
-                      px: 3,
-                      py: 2,
-                      borderRadius: "999px",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "background-color 0.2s, transform 0.2s",
-                      "&:hover": { bgcolor: "primary.dark", transform: "translateY(-1px)" },
-                    }}
-                  >
-                    BASE で購入する <span>→</span>
-                  </Box>
-                </a>
-                <Box sx={{ fontSize: "12px", color: "text.secondary", mt: 1, textAlign: "center" }}>
-                  外部サイト（BASE）に移動します
+                  {link.store} で購入する <span>→</span>
                 </Box>
+              </a>
+            ))}
+            {hasPurchaseLinks && (
+              <Box sx={{ fontSize: "12px", color: "text.secondary", mt: -0.5, textAlign: "center" }}>
+                外部サイト（{purchaseLinks.map((link) => link.store).join(" / ")}）に移動します
               </Box>
             )}
             <Link
@@ -267,9 +280,9 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 1.25,
-                  bgcolor: product.purchaseUrl ? "#FFFFFF" : "background.dark",
-                  color: product.purchaseUrl ? "text.primary" : "#FFFFFF",
-                  border: product.purchaseUrl ? "1px solid" : "none",
+                  bgcolor: hasPurchaseLinks ? "#FFFFFF" : "background.dark",
+                  color: hasPurchaseLinks ? "text.primary" : "#FFFFFF",
+                  border: hasPurchaseLinks ? "1px solid" : "none",
                   borderColor: "divider",
                   width: "100%",
                   px: 3,
@@ -279,8 +292,8 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
                   fontWeight: 600,
                   cursor: "pointer",
                   transition: "background-color 0.2s, transform 0.2s",
-                  "&:hover": product.purchaseUrl
-                    ? { bgcolor: "background.alt", transform: "translateY(-1px)" }
+                  "&:hover": hasPurchaseLinks
+                    ?{ bgcolor: "background.alt", transform: "translateY(-1px)" }
                     : { bgcolor: "primary.main", transform: "translateY(-1px)" },
                 }}
               >
