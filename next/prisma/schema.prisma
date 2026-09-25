@@ -65,6 +65,7 @@ model Product {
   isPublished Boolean  @default(true)
   isHeroImage Boolean  @default(false)
   purchaseUrl String?
+  works       WorkProduct[]
 
   @@index([category])
   @@index([isPublished, createdAt])
@@ -92,9 +93,22 @@ model Work {
   tags        String
   image       String?
   isPublished Boolean  @default(true)
+  products    WorkProduct[]
 
   @@index([category])
   @@index([isPublished, createdAt])
+}
+
+// ギャラリー作品とそれに使った商品の紐づけ（多対多）。
+// 商品詳細の「この商品を使った展示例」とギャラリーの「この展示に使った商品」の相互リンクに使う。
+model WorkProduct {
+  workId    Int
+  productId Int
+  work      Work    @relation(fields: [workId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([workId, productId])
+  @@index([productId])
 }
 
 enum User_role {

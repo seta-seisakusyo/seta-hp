@@ -18,7 +18,8 @@ import { useResourceEditor } from "@/lib/hooks/useResourceEditor";
 import { getManagementPermissions } from "@/lib/management-permissions";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { GALLERY_CATEGORIES, getGalleryCategoryLabel } from "@/lib/constants/categories";
-import type { Work } from "@/lib/types/work";
+import type { ManagedWork } from "@/lib/types/work";
+import WorkProductsField from "./WorkProductsField";
 
 interface GalleryManagementProps {
   session: Session;
@@ -31,6 +32,7 @@ interface WorkForm {
   tags: string;
   image: string;
   isPublished: boolean;
+  productIds: number[];
 }
 
 const createWorkForm = (): WorkForm => ({
@@ -40,19 +42,21 @@ const createWorkForm = (): WorkForm => ({
   tags: "",
   image: "",
   isPublished: true,
+  productIds: [],
 });
 
-const editWorkForm = (work: Work): WorkForm => ({
+const editWorkForm = (work: ManagedWork): WorkForm => ({
   title: work.title,
   description: work.description,
   category: work.category,
   tags: work.tags,
   image: work.image || "",
   isPublished: work.isPublished,
+  productIds: work.productIds ?? [],
 });
 
 const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
-  const { items: works, loading, error, retry, save, remove, pagination } = useCrudResource<Work>({
+  const { items: works, loading, error, retry, save, remove, pagination } = useCrudResource<ManagedWork>({
     endpoint: "/api/works",
     listUrl: "/api/works?includeUnpublished=true",
     listKey: "works",
@@ -72,14 +76,15 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
     tags: form.tags,
     image: form.image || null,
     isPublished: form.isPublished,
+    productIds: form.productIds,
   }, id), [save]);
-  const editor = useResourceEditor<Work, WorkForm>({
+  const editor = useResourceEditor<ManagedWork, WorkForm>({
     createForm: createWorkForm,
     editForm: editWorkForm,
     save: saveWork,
   });
 
-  const columns: ResourceColumn<Work>[] = [
+  const columns: ResourceColumn<ManagedWork>[] = [
     {
       header: "タイトル",
       render: (work) => (
@@ -101,6 +106,14 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
       render: (work) => (
         <Chip label={getGalleryCategoryLabel(work.category)} size="small" color="info" />
       ),
+    },
+    {
+      header: "使用商品",
+      hideOnMobile: true,
+      render: (work) => {
+        const count = work.productIds?.length ?? 0;
+        return count > 0 ? `${count}件` : "—";
+      },
     },
     {
       header: "公開",
@@ -186,6 +199,10 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
             onChange={(image) => editor.setField("image", image)}
           />
         </Box>
+        <WorkProductsField
+          value={editor.form.productIds}
+          onChange={(productIds) => editor.setField("productIds", productIds)}
+        />
         <ResourcePublishedField
           checked={editor.form.isPublished}
           onChange={(isPublished) => editor.setField("isPublished", isPublished)}

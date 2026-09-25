@@ -95,6 +95,37 @@ export function ProductCardMedia({
   );
 }
 
+const CARD_TITLE_VARIANTS = {
+  // 商品一覧: 2行分の高さを確保してカード間で価格行の位置を揃える
+  full: { fontSize: "18px", fontWeight: 700, letterSpacing: "-0.015em", mb: 2.25, minHeight: "calc(2 * 1.4 * 18px)" },
+  compact: { fontSize: "14px", fontWeight: 600, letterSpacing: "-0.01em", mb: 1 },
+} as const;
+
+interface CardTitleProps {
+  children: ReactNode;
+  variant?: keyof typeof CARD_TITLE_VARIANTS;
+}
+
+/** カードのタイトル。2行を超える分は省略する。 */
+export function CardTitle({ children, variant = "full" }: CardTitleProps) {
+  return (
+    <Box
+      sx={{
+        fontFamily: FONT_DISPLAY,
+        color: "text.primary",
+        lineHeight: 1.4,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        ...CARD_TITLE_VARIANTS[variant],
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
 interface ProductPriceRowProps {
   price: number;
   variant?: "full" | "compact";

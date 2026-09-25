@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
-import AboutSectionHeader from "./AboutSectionHeader";
+import SectionHeader from "@/components/SectionHeader";
 import AboutTwoColumn from "./AboutTwoColumn";
 
 const AboutStory = () => {
@@ -16,7 +16,7 @@ const AboutStory = () => {
             alignItems: "baseline",
           }}
         >
-          <AboutSectionHeader
+          <SectionHeader
             number="01"
             title="Story"
             titleJa="はじまり"

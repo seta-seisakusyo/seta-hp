@@ -96,6 +96,7 @@ export function parseAdminJson<T extends z.ZodTypeAny>(
  * API ルート共通の catch ハンドラ。
  * - Prisma P2025（更新・削除対象なし） → 404
  * - Prisma P2002（一意制約違反）→ 指定時は既存契約と同じ400
+ * - Prisma P2003（外部キー違反。存在しないIDへの紐づけ）→ 指定時は400
  * - その他 → ログ出力して 500
  */
 export function handleApiError(
@@ -105,8 +106,16 @@ export function handleApiError(
     message: string;
     notFoundMessage?: string;
     uniqueConstraintMessage?: string;
+    foreignKeyMessage?: string;
   }
 ): NextResponse {
+  if (
+    options.foreignKeyMessage &&
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2003"
+  ) {
+    return badRequestResponse(options.foreignKeyMessage);
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
     return notFoundResponse(options.notFoundMessage ?? "対象が見つかりません");
   }

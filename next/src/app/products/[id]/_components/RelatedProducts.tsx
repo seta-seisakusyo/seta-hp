@@ -1,11 +1,13 @@
 import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
+import SectionHeader from "@/components/SectionHeader";
 import {
+  CardTitle,
   ProductCardFrame,
   ProductCardMedia,
   ProductPriceRow,
 } from "@/components/product/ProductCardPrimitives";
-import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
+import { FONT_ITALIC } from "@/theme/themeConstants";
 import Link from "next/link";
 import { type ProductSummary } from "@/lib/types/product";
 import { formatRefNumber } from "@/lib/format";
@@ -18,25 +20,7 @@ const RelatedProducts: React.FC<Props> = ({ products }) => {
   return (
     <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 8, md: 12 } }}>
       <SectionContainer>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 3,
-            borderTop: "1px solid",
-            borderColor: "text.primary",
-            pt: 3.5,
-            mb: 6,
-            fontFamily: FONT_ITALIC,
-            fontStyle: "italic",
-            fontSize: "16px",
-            letterSpacing: "0.05em",
-          }}
-        >
-          <Box sx={{ color: "primary.main" }}>—</Box>
-          <Box sx={{ color: "text.primary" }}>Related</Box>
-          <Box sx={{ color: "text.secondary", fontSize: "14px" }}>／　関連商品</Box>
-        </Box>
+        <SectionHeader title="Related" titleJa="関連商品" marginBottom={6} />
 
         <Box
           sx={{
@@ -76,23 +60,7 @@ const RelatedProducts: React.FC<Props> = ({ products }) => {
                     >
                       Ref. {ref}
                     </Box>
-                    <Box
-                      sx={{
-                        fontFamily: FONT_DISPLAY,
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        letterSpacing: "-0.01em",
-                        color: "text.primary",
-                        mb: 1,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {p.name}
-                    </Box>
+                    <CardTitle variant="compact">{p.name}</CardTitle>
                     <ProductPriceRow price={p.price} variant="compact" />
                   </Box>
                 </ProductCardFrame>

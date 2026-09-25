@@ -1,9 +1,10 @@
 import { Box } from "@mui/material";
-import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
+import { FONT_ITALIC } from "@/theme/themeConstants";
 import Link from "next/link";
 import EmptyState from "@/components/EmptyState";
 import SectionContainer from "@/components/SectionContainer";
 import {
+  CardTitle,
   ProductCardFrame,
   ProductCardMedia,
   ProductPriceRow,
@@ -104,24 +105,7 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
                         {getProductCategoryLabel(p.category)}
                       </Box>
                     </Box>
-                    <Box
-                      sx={{
-                        fontFamily: FONT_DISPLAY,
-                        fontSize: "18px",
-                        fontWeight: 700,
-                        letterSpacing: "-0.015em",
-                        color: "text.primary",
-                        lineHeight: 1.4,
-                        mb: 2.25,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        minHeight: "calc(2 * 1.4 * 18px)",
-                      }}
-                    >
-                      {p.name}
-                    </Box>
+                    <CardTitle>{p.name}</CardTitle>
                     <ProductPriceRow price={p.price} />
                   </Box>
                 </ProductCardFrame>
