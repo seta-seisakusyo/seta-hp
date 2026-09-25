@@ -11,13 +11,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 運営事業者は個人事業所「**瀬田製作所**」(屋号)— 法的表記(特商法・プライバシーポリシー)では「販売業者: 瀬田製作所」と記載するが、サイト表示・SNS・OG情報・サブジェクト等のブランド面はすべて「飾Love」で統一する。
 ブランド表記ルール・タグライン「飾る愛、というのもある。」・歴史は [`docs/file/branding_kaza-love.md`](docs/file/branding_kaza-love.md) を参照。
 
+サイト内に決済・カート機能はない。商品ごとの `purchaseUrl`(外部の購入ページ)へ誘導し、未設定の商品はお問い合わせへ誘導する。
+
 ## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, MUI v6
 - **Backend**: Next.js API Routes, NextAuth.js v5 (JWT + Credentials / Google OAuth)
 - **Database**: MySQL 8.0, Prisma ORM
 - **Deployment**: Docker, Nginx, GitHub Container Registry, GitHub Actions
-- **Other**: reCAPTCHA v3, Nodemailer, Zod
+- **Test**: Vitest
+- **Other**: reCAPTCHA v3, Nodemailer, Zod, Google Analytics 4, X API v2
 
 ## Project Structure
 
@@ -26,25 +29,44 @@ seta-hp/
 ├── next/                    # Next.jsアプリケーション
 │   ├── src/
 │   │   ├── app/             # App Router pages & API routes
+│   │   │   ├── _home/       # トップページのセクション
+│   │   │   └── _legal/      # 法務ページ共通レイアウト
 │   │   ├── components/      # 共有コンポーネント
+│   │   │   ├── manage/      # 管理画面共通（一覧・フォーム・削除確認）
+│   │   │   ├── review/      # 社内レビューコメントUI
+│   │   │   ├── auth/        # ログイン・登録画面の部品
+│   │   │   ├── product/     # 商品カード部品（枠・画像・タイトル・価格）
+│   │   │   └── gallery/     # ギャラリー作品画像（WorkImage）
 │   │   ├── lib/             # ユーティリティ
 │   │   │   ├── constants/   # カテゴリ・在庫定義
+│   │   │   ├── hooks/       # 管理画面CRUD用フック
 │   │   │   ├── api-response.ts  # APIレスポンスヘルパー
+│   │   │   ├── api-utils.ts     # API認可（requireEditor/requireAdmin）+ JSON検証
+│   │   │   ├── managed-resource-route.ts # 管理リソースの一覧・削除共通処理
+│   │   │   ├── admin-auth.ts    # 管理ページの認可
 │   │   │   ├── rate-limit.ts    # レート制限（DB共有対応）
 │   │   │   ├── reviewCommentsGuard.ts # レビューAPIガード
 │   │   │   ├── upload-validation.ts # 画像アップロード検証
 │   │   │   ├── validation.ts    # Zodバリデーション（統一済み）
+│   │   │   ├── site-config.ts   # サイトURL・名称・連絡先の定数
+│   │   │   ├── x-client.ts      # X API クライアント
 │   │   │   ├── auth.ts          # NextAuth初期化
 │   │   │   └── db.ts            # Prismaクライアント
 │   │   ├── __tests__/       # Vitest
 │   │   └── theme/           # MUIテーマ設定
+│   ├── middleware.ts        # 管理ページの認証・権限チェック
 │   ├── auth.config.ts       # NextAuth設定（providers, callbacks）
-│   ├── prisma/              # Prismaスキーマ & シード
+│   ├── prisma/              # Prismaスキーマ・migration・シード
+│   ├── scripts/             # create-admin.sh（管理者ユーザー作成）
 │   └── public/              # 静的ファイル
 ├── docker-compose.yml          # 本番環境（ベース）
 ├── docker-compose.override.yml # ローカル開発用（自動読込、port 3001）
 ├── docker-compose.local.yml    # ローカルビルド検証用
-└── nginx/                      # Nginx設定
+├── nginx/                      # Nginx設定（テンプレート + entrypoint）
+├── scripts/                    # 運用スクリプト（DBバックアップ・SSL更新・監視・worktree初期化）
+├── certbot/ fail2ban/ logwatch/ # 本番サーバーの証明書・防御・ログ監視設定
+├── uploads/                    # アップロード画像（本番でコンテナにマウント）
+└── docs/                       # ブランド資料・デザインモック
 ```
 
 ## Development Commands
@@ -62,13 +84,17 @@ yarn dev              # 開発サーバー (Turbopack)
 yarn build            # プロダクションビルド
 yarn lint             # ESLint
 yarn typecheck        # 型チェック (.next を再生成してから実行)
+yarn test             # Vitest
+yarn create:admin     # 管理者ユーザーを対話形式で作成
 
 # Prisma
 npx prisma generate   # Clientの生成
 npx prisma migrate deploy # migrationを空DBから順番に適用
 npx prisma studio     # DB GUIツール
-npx prisma db seed    # シードデータ投入
+ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを作成
 ```
+
+`prisma db push` は使わない（データを失う恐れがあるため。CIでも起動スクリプト等での使用を検出して失敗させる）。
 
 ## Key Pages
 
@@ -76,11 +102,10 @@ npx prisma db seed    # シードデータ投入
 
 | Path | Description |
 |------|-------------|
-| `/` | トップページ (Hero, カテゴリ, 特集商品, 工房紹介, CTA) |
-| `/products` | 商品一覧 |
-| `/products/[id]` | 商品詳細 |
-| `/gallery` | ギャラリー |
-| `/about` | 飾Love について(工房紹介) |
+| `/` | トップページ (Hero, Catalogue, Features, QuizTeaser, CTA) |
+| `/products` | 商品一覧（`?category=` で絞り込み） |
+| `/products/[id]` | 商品詳細（存在しない・非公開なら404）。紐づいた作品を「この商品を使った展示例」として表示 |
+| `/gallery` | ギャラリー（Work を表示）。各作品に「この展示に使った商品」へのリンク。`?work={id}` でその作品の拡大表示を開く |
 | `/company` | 会社情報(飾Love / 運営: 瀬田製作所) |
 | `/contact` | お問い合わせフォーム（ADMIN は問い合わせ管理を表示） |
 | `/shipping` | 配送について |
@@ -89,70 +114,113 @@ npx prisma db seed    # シードデータ投入
 | `/login` | ログイン |
 | `/register` | ユーザー登録 |
 
+### 非表示ページ
+
+| Path | Description |
+|------|-------------|
+| `/about` | 飾Love について(工房紹介)。#312 で非表示化（ナビ・フッター・sitemap から除外、noindex）。ページ自体は残っておりURL直打ちで表示される |
+
 ### 管理ページ（認証必要: ADMIN/EDITOR）
 
 | Path | Description |
 |------|-------------|
 | `/products-manage` | 商品管理 |
 | `/gallery-manage` | ギャラリー管理 |
-| `/works-manage` | 互換URL（`/gallery-manage` へリダイレクト） |
-| `/news` | ニュース管理 |
+| `/works-manage` | 互換URL（`next.config.ts` の redirects で `/gallery-manage` へリダイレクト） |
+| `/news` | お知らせ管理（公開ページでの表示はない） |
+| `/x-post` | X（旧Twitter）への手動投稿（**ADMIN のみ**。外部発信で取り消せないため EDITOR 不可） |
 
 ## Database Models
 
 - **User**: ユーザー (ADMIN/EDITOR/VIEWER roles, cuid ID)
-- **Product**: 商品 (名前, 価格, カテゴリ, 複数画像 Json, 在庫状況, 公開フラグ)
-- **Work**: 実績・ポートフォリオ
-- **News**: ニュース記事 (日付, タイトル, JSON contents)
+- **Product**: 商品 (名前, 価格, カテゴリ, 複数画像 Json, 在庫状況, 公開フラグ, ヒーロー画像フラグ, 外部購入URL)
+- **Work**: ギャラリー作品（`/gallery` に表示）
+- **WorkProduct**: 作品とそれに使った商品の紐づけ（多対多）。管理画面の作品編集で設定し、商品詳細⇔ギャラリーの相互リンクに使う。公開側は双方とも公開中のものだけ表示
+- **News**: お知らせ (日付, タイトル, JSON contents)
 - **Inquiry**: お問い合わせ
 - **Account**: Google OAuthアカウント連携（セッション自体はJWT Cookie）
+- **ReviewComment** / **ReviewCommentReply**: 社内レビュー用のページ内コメントと返信（`NEXT_PUBLIC_ENABLE_COMMENTS=true` の時のみ使用）
+- **ApiRateLimit**: レート制限のカウンタ（DB共有ストア）
 
 ## Environment Variables
 
-開発環境は `next/.env` に設定。主要な変数:
+アプリの変数は `next/.env`、Docker Compose・Nginx の変数はリポジトリ直下の `.env` に設定する（それぞれ `.env.example` あり）。
+
+### `next/.env`（アプリ）
 - `DATABASE_URL`: MySQL接続文字列
 - `AUTH_SECRET`: NextAuth暗号化キー
 - `NEXTAUTH_URL`: 認証コールバックURL
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: Google OAuth（任意）
-- `RECAPTCHA_SECRET_KEY`: reCAPTCHA検証用
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`: Google OAuth（任意。3つ揃った時のみ有効）
+- `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` / `RECAPTCHA_SECRET_KEY`: reCAPTCHA v3（両方揃った時のみ有効）
+- `ALLOWED_RECAPTCHA_HOSTNAMES`: reCAPTCHA で許可するホスト名（カンマ区切り、任意）
 - `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`: メール送信
+- `CONTACT_TO_EMAIL`: 問い合わせ通知の宛先（未設定なら `SMTP_USER`）
+- `X_API_KEY` / `X_API_SECRET` / `X_ACCESS_TOKEN` / `X_ACCESS_TOKEN_SECRET`: X 投稿用（任意）
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID`: GA4 測定ID。静的生成ページにも埋め込むためビルド時に必要（CIではリポジトリ変数から渡す）
+- `NEXT_PUBLIC_ENABLE_COMMENTS`: `true` で社内レビューコメントを有効化（本番では設定しない）
+- `RATE_LIMIT_STORE`: `memory` / `database`（未設定なら `DATABASE_URL` があれば DB）
+- `SSO_VERIFY_ENABLED`: `1` で `/api/auth/verify-admin` を有効化（Designer SSO）
+- `SSO_COOKIE_DOMAIN` / `SSO_COOKIE_SECURE`: Designer とセッションCookieを共有するための設定。`docker-compose.yml` で本番値を固定し、ローカル用の compose で空・`0` に上書きしている
+- `NEXT_PUBLIC_DESIGNER_URL`: Designer へのリンク先（既定 `https://designer.kaza-love.com`）
+
+### リポジトリ直下 `.env`（Docker Compose / Nginx）
+- `MYSQL_ROOT_PASSWORD` / `MYSQL_DATABASE` / `MYSQL_USER` / `MYSQL_PASSWORD`: MySQL コンテナ
+- `IMAGE_TAG`: 本番で使うイメージのタグ
+- `SERVER_NAME` / `OLD_SERVER_NAME`: Nginx のドメイン（旧ドメインは 301 リダイレクト）
+- `PROXY_SSO_SECRET`: Nginx が Designer へ `X-SSO-Auth` ヘッダーで渡す共有秘密
+- `DEV_BIND_ADDRESS` / `DEV_PORT` / `DEV_NEXTAUTH_URL`: ローカル開発用
 - `ADMIN_ALLOWED_IPS`: 管理エリア（管理ページ・管理API書込・ログイン/登録・認証API）を許可するIP/CIDR（スペース区切り、Nginx層で制限）。未設定なら制限なし。`/api/auth/session` のみ常時公開
 
 ## Critical Patterns
 
 ### API Routes
 - `/api/auth/[...nextauth]`: NextAuth認証エンドポイント
-- `/api/products`: 商品CRUD（GET公開, 書込ADMIN/EDITOR, 非公開取得ADMIN/EDITOR）
-- `/api/email`: お問い合わせメール送信（レート制限あり）
+- `/api/products` / `/api/works` / `/api/news`: 商品・ギャラリー・お知らせのCRUD
+  - `/api/works` の POST/PUT は `productIds`（使用商品）を受け付ける。PUT は指定時のみ紐づけを入れ替え、未指定なら変更しない。管理用 GET（`includeUnpublished=true`）は `productIds` を返す
+  - GET: 公開（非公開データの取得は ADMIN/EDITOR）
+  - POST / PUT: ADMIN/EDITOR
+  - DELETE: **ADMIN のみ**
+- `/api/email`: お問い合わせ（POST 送信は公開・レート制限あり / GET 一覧・DELETE は ADMIN のみ）
 - `/api/recaptcha`: reCAPTCHA検証（レート制限あり）
 - `/api/register`: ユーザー登録（レート制限あり）
-- `/api/news`: ニュースCRUD
-- `/api/works`: 実績CRUD
+- `/api/upload`: 画像アップロード（POST, ADMIN/EDITOR）
+- `/api/x/post`: X への投稿（POST, ADMIN のみ, レート制限あり）。`X_API_KEY` / `X_API_SECRET` / `X_ACCESS_TOKEN` / `X_ACCESS_TOKEN_SECRET` 未設定時は 503
+- `/api/review-comments`（`[id]`, `[id]/replies` を含む）: 社内レビューコメントCRUD（レート制限あり）。`NEXT_PUBLIC_ENABLE_COMMENTS=true` 以外では 404
+- `/api/auth/verify-admin`: nginx `auth_request` 用の管理者検証（Designer SSO）。ADMIN なら 200＋身元ヘッダー。`SSO_VERIFY_ENABLED=1` の時のみ有効で、未設定なら常に 403
+- `/api/health`: ヘルスチェック（GET, 常に `{ status: "ok" }`）
+
+API の認可とJSON検証は `src/lib/api-utils.ts` の `parseEditorJson` / `parseAdminJson` を使う。
+
+### 管理エリアの防御（多層）
+1. Nginx: `ADMIN_ALLOWED_IPS` による IP 制限
+2. `next/middleware.ts`: `/products-manage` `/gallery-manage` `/news` で未認証はログインへ、権限不足はトップへ
+3. ページ・API 側の `requireAdmin` / `requireEditor` 等による認可
 
 ### Validation
-- Zodスキーマに統一 (`src/lib/validation.ts`)
-- InquirySchema, RegistrationSchema, Product/Work/NewsのCreate・Updateスキーマ
-- XSSサニタイズ対応（xssパッケージ）
+- Zodスキーマに統一 (`src/lib/validation.ts`、レビューコメントは `src/lib/review-validation.ts`)
+- InquirySchema, RegistrationSchema, RecaptchaRequestSchema, XPostSchema, Product/Work/NewsのCreate・Updateスキーマ
+- XSSサニタイズ対応（xssパッケージ）。サニタイズ後の値でDBの長さ上限を検証する
 
 ### Rate Limiting
 - 統一されたレート制限 (`src/lib/rate-limit.ts`, 既定はDB共有ストア)
-- プリセット: register, login, loginIp, contact, recaptcha, review, reviewUpdate
+- プリセット: register, login, loginIp, contact, recaptcha, review, reviewUpdate, xPost
 
 ### Session Types
 - `src/app/types/next-auth.d.ts` でSession/User/JWT型を拡張
 - UserRole型: "ADMIN" | "EDITOR" | "VIEWER"
 
 ### Security Headers
-- `next.config.ts` でセキュリティヘッダーを設定（HSTS, X-Frame-Options等）
+- `next.config.ts` でセキュリティヘッダーを設定（HSTS, X-Frame-Options, CSP, Referrer-Policy, Permissions-Policy 等）
 
 ### SEO Routes
 - `src/app/robots.ts` と `src/app/sitemap.ts` が正本（App Router Metadata Route）
 - `public/robots.txt` / `public/sitemap*.xml` の静的生成物は使用しない
 - sitemapはリクエスト時に公開商品をDBから取得し、静的ページと合わせて返す
+- 構造化データ（JSON-LD）は `src/lib/structured-data.ts` で組み立て、`src/lib/json-ld.ts` でエスケープして埋め込む
 
 ### Styling
 - MUIコンポーネント + カスタムテーマ (`src/theme/`)
-- `sx` と法務ページ共通レイアウトで表示規則を管理
+- `sx` と法務ページ共通レイアウト（`src/app/_legal/`）で表示規則を管理
 
 ## 並行作業（git worktree）
 
@@ -185,5 +253,8 @@ worktree はコード編集・レビュー・`yarn lint` / `yarn test` / `yarn b
 - `next/` ディレクトリがアプリケーション本体
 - Docker環境推奨（MySQL依存のため）
 - 認証が必要なページは `/login` 経由でアクセス
-- 画像アップロードは `/public/uploads` に保存
-- ブランチ: `main`(本番) → `develop`(開発) → `feature/*` or `fix/*`
+- 画像アップロードは `public/uploads` に保存する。本番ではリポジトリ直下の `uploads/` をコンテナの `/app/public/uploads` にマウントし、`/uploads/` は Nginx が直接配信する
+- ブランチ: `main`(本番) → `develop`(開発) → 作業ブランチ `{type}/{issue番号}`（例: `fix/101`, `feature/132`）
+- CI/CD（`.github/workflows/deploy_production.yml`）
+  - `develop` 宛の PR: migration の空DB適用・lint・typecheck・test・build・Nginx設定検証
+  - `main` への push: 上記に加え、GHCR へイメージを push して本番サーバーへデプロイ
