@@ -8,6 +8,7 @@ import {
 } from "@/lib/constants/categories";
 import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
 import { WORK_PRODUCTS_MAX } from "@/lib/work-constants";
+import { META_DESCRIPTION_MAX, SEO_KEYWORDS_MAX } from "@/lib/seo-keywords";
 
 const nameSchema = z
   .string()
@@ -160,6 +161,21 @@ const tagsSchema = z.union([z.string(), z.array(z.unknown())])
   .optional();
 const optionalImageSchema = z.string().max(VARCHAR_MAX, { message: "画像URLが長すぎます" }).optional().nullable();
 
+// 検索エンジン向けの項目。空文字は「未設定」(null) として保存する。
+const seoKeywordsSchema = z.union([z.string(), z.array(z.unknown())])
+  .transform((keywords) => {
+    const list = Array.isArray(keywords) ? keywords.map(String) : keywords.split(/[,、，\n]/);
+    return [...new Set(list.map((keyword) => xss(keyword.trim())).filter(Boolean))].join(",");
+  })
+  .pipe(z.string().max(SEO_KEYWORDS_MAX, { message: `SEOキーワードは${SEO_KEYWORDS_MAX}文字以内で入力してください` }))
+  .transform((value) => value || null);
+const metaDescriptionSchema = z.string()
+  .transform((value) => xss(value.trim()))
+  .pipe(z.string().max(META_DESCRIPTION_MAX, {
+    message: `検索結果の説明文は${META_DESCRIPTION_MAX}文字以内で入力してください`,
+  }))
+  .transform((value) => value || null);
+
 export const ProductCreateSchema = z.object({
   name: storedText("名前は必須です", `名前は${VARCHAR_MAX}文字以内で入力してください`),
   description: storedText("説明は必須です"),
@@ -172,11 +188,33 @@ export const ProductCreateSchema = z.object({
   isHeroImage: z.boolean().optional(),
   purchaseUrl: purchaseUrlSchema.optional().nullable(),
   amazonUrl: amazonUrlSchema.optional().nullable(),
+  seoKeywords: seoKeywordsSchema.optional().nullable(),
+  metaDescription: metaDescriptionSchema.optional().nullable(),
 });
 
 export const ProductUpdateSchema = ProductCreateSchema.partial().extend({
   id: idSchema,
 });
+
+/**
+ * 設計ツールからの商品登録（/api/integrations/designer/products）。
+ * 公開状態は受け取らない: 新規は必ず非公開で作り、公開は HP の管理画面で人が行う。
+ * 画像はこの JSON ではなく multipart のファイルとして受け取る。
+ */
+export const DesignerProductSchema = z.object({
+  designerDesignId: idSchema,
+  designerUrl: makeHttpUrlSchema("設計のURLは http(s) 形式で指定してください", { maxLength: 512 }).optional().nullable(),
+  name: ProductCreateSchema.shape.name,
+  description: ProductCreateSchema.shape.description,
+  price: priceSchema,
+  category: productCategorySchema,
+  tags: tagsSchema,
+  stock: stockSchema.optional(),
+  purchaseUrl: purchaseUrlSchema.optional().nullable(),
+  seoKeywords: seoKeywordsSchema.optional().nullable(),
+  metaDescription: metaDescriptionSchema.optional().nullable(),
+});
+export type DesignerProductInput = z.infer<typeof DesignerProductSchema>;
 
 const galleryCategorySchema = z
   .string({ required_error: "カテゴリは必須です" })

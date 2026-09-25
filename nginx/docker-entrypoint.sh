@@ -150,6 +150,12 @@ server {
         include /etc/nginx/conf.d/proxy_timeouts.inc;
     }
 
+    # 設計ツール連携API（#322）はサーバー間通信専用。designer-backend は Docker ネットワーク内で
+    # next_app:3000 を直接呼ぶので、nginx 経由（外部）からは一切通さない（多層防御）。
+    location ^~ /api/integrations/ {
+        return 404;
+    }
+
     location /api/ {
         limit_req zone=api burst=10 nodelay;
         proxy_pass http://next_app:3000;
@@ -346,6 +352,12 @@ server {
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
+    }
+
+    # 設計ツール連携API（#322）はサーバー間通信専用。designer-backend は Docker ネットワーク内で
+    # next_app:3000 を直接呼ぶので、nginx 経由（外部）からは一切通さない（多層防御）。
+    location ^~ /api/integrations/ {
+        return 404;
     }
 
     location = /api/upload {

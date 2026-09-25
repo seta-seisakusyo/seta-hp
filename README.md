@@ -128,6 +128,7 @@ Docker Composeが展開する値はルートの `.env.example` を `.env` に、
 | `NEXTAUTH_URL` | 認証コールバック URL |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth（任意） |
 | `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` | Google 認証の有効化フラグ（任意） |
+| `DESIGNER_API_SECRET` | 設計ツールからの商品登録APIの共有秘密（任意。未設定なら連携無効） |
 | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 サイトキー（フロントエンド用） |
 | `RECAPTCHA_SECRET_KEY` | reCAPTCHA v3 検証用（サーバー用） |
 | `ALLOWED_RECAPTCHA_HOSTNAMES` | reCAPTCHA 許可ホスト名（カンマ区切り） |

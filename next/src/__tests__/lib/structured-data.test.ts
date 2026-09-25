@@ -15,6 +15,10 @@ const baseProduct: Product = {
   isHeroImage: false,
   purchaseUrl: null,
   amazonUrl: null,
+  seoKeywords: null,
+  metaDescription: null,
+  designerDesignId: null,
+  designerUrl: null,
 };
 
 describe("buildProductJsonLd", () => {

@@ -35,6 +35,7 @@ import {
   getStockMeta,
 } from "@/lib/constants/categories";
 import { parseProductImages, type Product } from "@/lib/types/product";
+import { META_DESCRIPTION_MAX } from "@/lib/seo-keywords";
 
 interface ProductManagementProps {
   session: Session;
@@ -52,6 +53,8 @@ interface ProductForm {
   isHeroImage: boolean;
   purchaseUrl: string;
   amazonUrl: string;
+  seoKeywords: string;
+  metaDescription: string;
 }
 
 const createProductForm = (): ProductForm => ({
@@ -66,6 +69,8 @@ const createProductForm = (): ProductForm => ({
   isHeroImage: false,
   purchaseUrl: "",
   amazonUrl: "",
+  seoKeywords: "",
+  metaDescription: "",
 });
 
 const editProductForm = (product: Product): ProductForm => ({
@@ -80,6 +85,8 @@ const editProductForm = (product: Product): ProductForm => ({
   isHeroImage: product.isHeroImage,
   purchaseUrl: product.purchaseUrl || "",
   amazonUrl: product.amazonUrl || "",
+  seoKeywords: product.seoKeywords || "",
+  metaDescription: product.metaDescription || "",
 });
 
 const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
@@ -108,6 +115,8 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
     isHeroImage: form.isHeroImage,
     purchaseUrl: form.purchaseUrl || null,
     amazonUrl: form.amazonUrl || null,
+    seoKeywords: form.seoKeywords || null,
+    metaDescription: form.metaDescription || null,
   }, id), [save]);
   const editor = useResourceEditor<Product, ProductForm>({
     createForm: createProductForm,
@@ -279,6 +288,31 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
           placeholder="https://www.amazon.co.jp/dp/..."
           helperText="入力すると商品ページに「Amazon で購入する」ボタンが表示されます"
         />
+        <TextField
+          label="SEOキーワード（任意・カンマ区切り）"
+          value={editor.form.seoKeywords}
+          onChange={(e) => editor.setField("seoKeywords", e.target.value)}
+          fullWidth
+          placeholder="カードディスプレイ, トレカ 飾る, MLB カード"
+        />
+        <TextField
+          label="検索結果の説明文（任意）"
+          value={editor.form.metaDescription}
+          onChange={(e) => editor.setField("metaDescription", e.target.value)}
+          fullWidth
+          multiline
+          minRows={2}
+          inputProps={{ maxLength: META_DESCRIPTION_MAX }}
+          helperText={`${editor.form.metaDescription.length}/${META_DESCRIPTION_MAX}文字。未入力なら商品説明を使います（120文字前後が目安）`}
+        />
+        {editor.selectedResource?.designerUrl && (
+          <Typography variant="body2">
+            設計ツールで作成した商品です:{" "}
+            <a href={editor.selectedResource.designerUrl} target="_blank" rel="noopener noreferrer">
+              設計を開く
+            </a>
+          </Typography>
+        )}
         <ResourcePublishedField
           checked={editor.form.isPublished}
           onChange={(isPublished) => editor.setField("isPublished", isPublished)}

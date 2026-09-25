@@ -14,6 +14,7 @@ import type { WorkSummary } from "@/lib/types/work";
 import SectionContainer from "@/components/SectionContainer";
 import DarkCtaSection from "@/components/DarkCtaSection";
 import { getPrimaryProductImage } from "@/lib/types/product";
+import { splitSeoKeywords } from "@/lib/seo-keywords";
 
 // ISR: ビルド時は生成せず（CIビルドはDB到達不可のため generateStaticParams は空）、
 // 初回アクセス時に生成してキャッシュする。商品の作成・更新・削除時は
@@ -79,14 +80,18 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   const product = await getPublishedProduct(id);
   if (!product) return { title: "商品が見つかりません" };
 
+  // 検索結果の説明文は専用の metaDescription を優先し、未設定なら商品説明を使う。
+  const description = product.metaDescription || product.description;
+  const keywords = splitSeoKeywords(product.seoKeywords);
   return {
     title: product.name,
-    description: product.description,
+    description,
+    ...(keywords.length > 0 ? { keywords } : {}),
     alternates: { canonical: `/products/${product.id}` },
     openGraph: {
       type: "website",
       title: product.name,
-      description: product.description,
+      description,
       url: `/products/${product.id}`,
       images: [getPrimaryProductImage(product.images) ?? "/og-image.png"],
     },
