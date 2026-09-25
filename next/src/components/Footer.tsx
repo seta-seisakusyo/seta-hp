@@ -25,8 +25,6 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Studio / 工房",
     links: [
-      { label: "工房について", href: "/about" },
-      { label: "作り方", href: "/about" },
       { label: "ギャラリー", href: "/gallery" },
       { label: "お問い合わせ", href: "/contact" },
     ],
