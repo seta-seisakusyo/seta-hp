@@ -36,13 +36,7 @@ const FeaturesSection = () => {
       <SectionContainer>
         <SplitSectionHeading
           title={<>長く、<em>共に。</em></>}
-          description={
-            <>
-              飾るカードの方が長持ちするくらい、ディスプレイ側もしっかり作る。
-              <br />
-              手を抜かないことが、飾Love のスタンダードです。
-            </>
-          }
+          description="飾るカードが映えるために"
         />
 
         <Box

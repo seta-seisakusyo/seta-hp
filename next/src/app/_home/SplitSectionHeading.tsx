@@ -4,7 +4,8 @@ import { FONT_DISPLAY } from "@/theme/themeConstants";
 
 interface SplitSectionHeadingProps {
   title: ReactNode;
-  description: ReactNode;
+  /** 見出し右（スマホは下）の説明文。省略時は見出しのみ */
+  description?: ReactNode;
 }
 
 export default function SplitSectionHeading({ title, description }: SplitSectionHeadingProps) {
@@ -12,7 +13,7 @@ export default function SplitSectionHeading({ title, description }: SplitSection
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: { xs: "1fr", md: "1fr 1.4fr" },
+        gridTemplateColumns: { xs: "1fr", md: description ? "1fr 1.4fr" : "1fr" },
         gap: { xs: 3, md: 10 },
         mb: { xs: 4, md: 5 },
         alignItems: "end",
@@ -31,9 +32,11 @@ export default function SplitSectionHeading({ title, description }: SplitSection
       >
         {title}
       </Box>
-      <Box sx={{ fontSize: "16px", color: "secondary.main", lineHeight: 1.7, maxWidth: 540 }}>
-        {description}
-      </Box>
+      {description && (
+        <Box sx={{ fontSize: "16px", color: "secondary.main", lineHeight: 1.7, maxWidth: 540 }}>
+          {description}
+        </Box>
+      )}
     </Box>
   );
 }
