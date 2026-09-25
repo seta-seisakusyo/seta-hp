@@ -12,12 +12,11 @@ import { SITE_URL } from "@/lib/site-config";
 export const dynamic = "force-dynamic";
 
 // sitemap に含める公開・インデックス対象の静的ページ
-// （/login・/register・各 *-manage・/news は noindex のため除外）
+// （/login・/register・各 *-manage・/news・/about は noindex のため除外）
 const STATIC_PATHS = [
   "",
   "/products",
   "/gallery",
-  "/about",
   "/company",
   "/contact",
   "/shipping",
