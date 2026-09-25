@@ -163,6 +163,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 - `SSO_VERIFY_ENABLED`: `1` で `/api/auth/verify-admin` を有効化（Designer SSO）
 - `SSO_COOKIE_DOMAIN` / `SSO_COOKIE_SECURE`: Designer とセッションCookieを共有するための設定。`docker-compose.yml` で本番値を固定し、ローカル用の compose で空・`0` に上書きしている
 - `NEXT_PUBLIC_DESIGNER_URL`: Designer へのリンク先（既定 `https://designer.kaza-love.com`）
+- `DESIGNER_API_SECRET`: 設計ツール（Designer）から商品を登録する連携APIの共有秘密。Designer 側の `HP_API_SECRET` と同じ値にする。未設定なら連携APIは 503
 
 ### リポジトリ直下 `.env`（Docker Compose / Nginx）
 - `MYSQL_ROOT_PASSWORD` / `MYSQL_DATABASE` / `MYSQL_USER` / `MYSQL_PASSWORD`: MySQL コンテナ
@@ -189,6 +190,9 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 - `/api/review-comments`（`[id]`, `[id]/replies` を含む）: 社内レビューコメントCRUD（レート制限あり）。`NEXT_PUBLIC_ENABLE_COMMENTS=true` 以外では 404
 - `/api/auth/verify-admin`: nginx `auth_request` 用の管理者検証（Designer SSO）。ADMIN なら 200＋身元ヘッダー。`SSO_VERIFY_ENABLED=1` の時のみ有効で、未設定なら常に 403
 - `/api/health`: ヘルスチェック（GET, 常に `{ status: "ok" }`）
+- `/api/integrations/designer/products`: 設計ツールからの商品登録（#322）。`Authorization: Bearer <DESIGNER_API_SECRET>` で認証するサーバー間通信専用で、nginx は外部から通さない（designer-backend が Docker ネットワーク内の `next_app:3000` を直接呼ぶ）
+  - POST（multipart: `payload` JSON ＋ `images` ファイル）: `designerDesignId` で照合して作成または更新。新規は必ず非公開、更新では公開状態を変えない。画像を送った時だけ差し替える
+  - GET `?designerDesignId=`: 紐づく商品の ID と公開状態
 
 API の認可とJSON検証は `src/lib/api-utils.ts` の `parseEditorJson` / `parseAdminJson` を使う。
 
