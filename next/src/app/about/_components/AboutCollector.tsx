@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
-import AboutSectionHeader from "./AboutSectionHeader";
+import SectionHeader from "@/components/SectionHeader";
 import AboutTwoColumn from "./AboutTwoColumn";
 
 const COLLECTION = [
@@ -14,7 +14,7 @@ const AboutCollector = () => {
   return (
     <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 10, md: 15 } }}>
       <SectionContainer>
-        <AboutSectionHeader
+        <SectionHeader
           number="02"
           title="Collector"
           titleJa="コレクターとして"

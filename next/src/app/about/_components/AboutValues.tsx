@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
-import AboutSectionHeader from "./AboutSectionHeader";
+import SectionHeader from "@/components/SectionHeader";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
 const VALUES = [
@@ -28,7 +28,7 @@ const AboutValues = () => {
   return (
     <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 10, md: 15 } }}>
       <SectionContainer>
-        <AboutSectionHeader
+        <SectionHeader
           number="03"
           title="Values"
           titleJa="大切にしていること"

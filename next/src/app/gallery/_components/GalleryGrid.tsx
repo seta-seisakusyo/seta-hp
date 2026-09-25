@@ -1,50 +1,108 @@
 "use client";
 
-import { useState } from "react";
-import { Box, Dialog, IconButton } from "@mui/material";
-import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
+import { Box, Dialog, IconButton, type SxProps, type Theme } from "@mui/material";
 import Link from "next/link";
 import CloseIcon from "@mui/icons-material/Close";
 import EmptyState from "@/components/EmptyState";
 import SectionContainer from "@/components/SectionContainer";
+import WorkImage from "@/components/gallery/WorkImage";
 import { getGalleryCategoryLabel } from "@/lib/constants/categories";
 import { formatRefNumber } from "@/lib/format";
-import { isUploadedImageUrl } from "@/lib/images";
-import type { WorkGridItem } from "@/lib/types/work";
+import type { WorkGridItem, WorkProductLink } from "@/lib/types/work";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
 interface Props {
   works: WorkGridItem[];
+  /** /gallery?work={id} で指定された作品。存在すれば開いた状態で表示する */
+  initialWorkId?: number | null;
 }
-const FALLBACK_IMAGE_BG = "rgb(246, 246, 244)";
 
-// カード余白（contain のレターボックス部）は静的な淡いグレー背景＋微グラデで統一する。
-// 以前は各画像を canvas で再ダウンロードしてドミナントカラーを抽出していたが、
-// ギャラリーの画像帯域が2倍になるため廃止（#199）。
-function GalleryCardImage({ src, alt }: { src: string; alt: string }) {
+const workCardId = (id: number) => `work-${id}`;
+
+/** 「この展示に使った商品」のリンク一覧。tone はカード（明）と拡大表示（暗）の配色 */
+function WorkProductLinks({
+  products,
+  tone,
+  sx,
+}: {
+  products: WorkProductLink[];
+  tone: "light" | "dark";
+  sx?: SxProps<Theme>;
+}) {
+  if (products.length === 0) return null;
+  const dark = tone === "dark";
+
   return (
     <Box
-      sx={{
-        position: "absolute",
-        inset: 0,
-        bgcolor: FALLBACK_IMAGE_BG,
-        backgroundImage: `linear-gradient(180deg, ${FALLBACK_IMAGE_BG} 0%, rgba(255,255,255,0.45) 100%)`,
-      }}
+      // カード全体のクリック（拡大表示）とキー操作をリンク側で止める
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      sx={sx}
     >
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="(max-width: 600px) 100vw, (max-width: 960px) 50vw, 33vw"
-        unoptimized={isUploadedImageUrl(src)}
-        style={{ objectFit: "contain", objectPosition: "center center" }}
-      />
+      <Box
+        sx={{
+          fontSize: "11px",
+          letterSpacing: "0.12em",
+          color: dark ? "rgba(255,255,255,0.72)" : "text.secondary",
+          fontWeight: 500,
+          mb: 0.75,
+        }}
+      >
+        この展示に使った商品
+      </Box>
+      <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexWrap: "wrap", gap: 1 }}>
+        {products.map((product) => (
+          <Box component="li" key={product.id}>
+            <Box
+              component={Link}
+              href={`/products/${product.id}`}
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.75,
+                fontSize: "13px",
+                fontWeight: 500,
+                color: dark ? "#FFFFFF" : "primary.main",
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+                textDecorationColor: dark ? "rgba(255,255,255,0.4)" : "rgba(180,83,9,0.35)",
+                transition: "text-decoration-color 0.2s ease",
+                "&:hover": { textDecorationColor: "currentColor" },
+              }}
+            >
+              {product.name} <span aria-hidden="true">→</span>
+            </Box>
+          </Box>
+        ))}
+      </Box>
     </Box>
   );
 }
 
-const GalleryGrid: React.FC<Props> = ({ works }) => {
+const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
+  const initialWork = works.find((work) => work.id === initialWorkId) ?? null;
   const [selectedWork, setSelectedWork] = useState<WorkGridItem | null>(null);
+
+  // 指定作品はマウント後に拡大表示を開く。初回描画から開いた状態にすると、
+  // Dialog のスタイル適用前にフォーカス移動が走り、背面ページがスクロールしてしまう。
+  // 画像がなく拡大表示を開けない作品は、カードまでスクロールして位置を示す。
+  useEffect(() => {
+    if (!initialWork) return;
+    if (initialWork.image) {
+      setSelectedWork(initialWork);
+    } else {
+      document.getElementById(workCardId(initialWork.id))?.scrollIntoView({ block: "center" });
+    }
+  }, [initialWork]);
+
+  const closeWork = useCallback(() => {
+    setSelectedWork(null);
+    // 閉じた後の再読み込みで開き直さないよう ?work= を取り除く
+    if (new URLSearchParams(window.location.search).has("work")) {
+      window.history.replaceState(window.history.state, "", window.location.pathname);
+    }
+  }, []);
 
   if (works.length === 0) {
     return (
@@ -65,6 +123,7 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
           {works.map((work, idx) => (
             <Box
               key={work.id}
+              id={workCardId(work.id)}
               role={work.image ? "button" : undefined}
               tabIndex={work.image ? 0 : undefined}
               aria-label={work.image ? `${work.title} を拡大表示` : undefined}
@@ -98,7 +157,7 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
                 sx={{
                   position: "relative",
                   aspectRatio: "4 / 5",
-                  bgcolor: FALLBACK_IMAGE_BG,
+                  bgcolor: "background.alt",
                   overflow: "hidden",
                   borderRadius: "4px",
                   border: "1px solid",
@@ -107,7 +166,11 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
                 }}
               >
                 {work.image ? (
-                  <GalleryCardImage src={work.image} alt={work.title} />
+                  <WorkImage
+                    src={work.image}
+                    alt={work.title}
+                    sizes="(max-width: 600px) 100vw, (max-width: 960px) 50vw, 33vw"
+                  />
                 ) : (
                   <Box
                     sx={{
@@ -173,6 +236,7 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
                 >
                   {work.title}
                 </Box>
+                <WorkProductLinks products={work.products} tone="light" sx={{ mb: 2 }} />
                 <Box
                   component={Link}
                   href={`/contact?display=${encodeURIComponent(work.title)}`}
@@ -211,15 +275,20 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
 
       <Dialog
         open={Boolean(selectedWork)}
-        onClose={() => setSelectedWork(null)}
+        onClose={closeWork}
         maxWidth={false}
+        // 画像下のタイトル・使用商品リンクが画面に収まらない場合（スマホ・商品が多い作品）も
+        // 最後までスクロールできるよう、ダイアログ全体をスクロールさせる。
+        scroll="body"
         PaperProps={{
           sx: {
             bgcolor: "transparent",
             boxShadow: "none",
             overflow: "visible",
             width: "min(92vw, 1200px)",
-            m: 0,
+            // 上余白は閉じるボタン（Paper の上に配置）が画面内に収まる分
+            mx: 0,
+            my: { xs: 8, md: 9 },
           },
         }}
         slotProps={{
@@ -235,7 +304,7 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
           <Box sx={{ position: "relative" }}>
             <IconButton
               aria-label="拡大画像を閉じる"
-              onClick={() => setSelectedWork(null)}
+              onClick={closeWork}
               sx={{
                 position: "absolute",
                 top: { xs: -44, md: -52 },
@@ -256,22 +325,14 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
               sx={{
                 position: "relative",
                 width: "100%",
-                height: "min(78vh, 1100px)",
+                // スマホは下のタイトル・リンクが最初から見えるよう画像を低めにする
+                height: { xs: "min(60vh, 1100px)", md: "min(78vh, 1100px)" },
                 borderRadius: "10px",
                 overflow: "hidden",
-                bgcolor: "background.alt",
                 border: "1px solid rgba(255,255,255,0.12)",
               }}
             >
-              <Image
-                src={selectedWork.image}
-                alt={selectedWork.title}
-                fill
-                sizes="92vw"
-                unoptimized={isUploadedImageUrl(selectedWork.image)}
-                style={{ objectFit: "contain", objectPosition: "center center" }}
-                priority
-              />
+              <WorkImage src={selectedWork.image} alt={selectedWork.title} sizes="92vw" priority />
             </Box>
 
             <Box
@@ -307,6 +368,7 @@ const GalleryGrid: React.FC<Props> = ({ works }) => {
                 {getGalleryCategoryLabel(selectedWork.category)}
               </Box>
             </Box>
+            <WorkProductLinks products={selectedWork.products} tone="dark" sx={{ mt: 2 }} />
           </Box>
         )}
       </Dialog>

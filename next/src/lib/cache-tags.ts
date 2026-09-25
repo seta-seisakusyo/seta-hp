@@ -21,13 +21,20 @@ export const CACHE_TAGS = {
  * 商品の作成・更新・削除後に、商品を表示する全ページのキャッシュを破棄する。
  * - products タグ: トップ（カタログ/ヒーロー画像）・商品一覧のデータキャッシュ
  * - /products/[id]: ISR済みの商品詳細ページ（関連商品の表示を含むため全件）
+ * - works タグ: ギャラリーの「この展示に使った商品」（商品名・公開状態を反映するため）
  */
 export function revalidateProductPages() {
   revalidateTag(CACHE_TAGS.products);
   revalidatePath("/products/[id]", "page");
+  revalidateTag(CACHE_TAGS.works);
 }
 
-/** 制作事例の作成・更新・削除後に、ギャラリーのデータキャッシュを破棄する。 */
+/**
+ * 制作事例の作成・更新・削除後に、制作事例を表示する全ページのキャッシュを破棄する。
+ * - works タグ: ギャラリーのデータキャッシュ
+ * - /products/[id]: 商品詳細の「この商品を使った展示例」
+ */
 export function revalidateWorkPages() {
   revalidateTag(CACHE_TAGS.works);
+  revalidatePath("/products/[id]", "page");
 }

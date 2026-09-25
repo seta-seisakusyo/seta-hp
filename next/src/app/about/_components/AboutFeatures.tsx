@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
-import AboutSectionHeader from "./AboutSectionHeader";
+import SectionHeader from "@/components/SectionHeader";
 import { FONT_DISPLAY } from "@/theme/themeConstants";
 
 const FEATURES = [
@@ -12,7 +12,7 @@ const AboutFeatures = () => {
   return (
     <Box component="section" sx={{ py: { xs: 10, md: 15 } }}>
       <SectionContainer>
-        <AboutSectionHeader
+        <SectionHeader
           number="04"
           title="Features"
           titleJa="飾Love の特徴"
