@@ -44,27 +44,7 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
   return (
     <Box component="section" id="products" sx={{ py: { xs: 6, md: 9 } }}>
       <SectionContainer>
-        <SplitSectionHeading
-          title={<>ライン<br /><em>ナップ。</em></>}
-          description={
-            <>
-              アクリルから一つずつレーザー切削、手仕上げ。
-              <br />
-              MLBカード・トレカを美しく飾るためのディスプレイをお届けします。
-              <Box
-                sx={{
-                  display: "block",
-                  mt: 1.5,
-                  color: "text.secondary",
-                  fontFamily: FONT_ITALIC,
-                  fontStyle: "italic",
-                }}
-              >
-                — Handmade, one at a time.
-              </Box>
-            </>
-          }
-        />
+        <SplitSectionHeading title={<>ライン<em>ナップ。</em></>} />
 
         {/* Products */}
         <Box
