@@ -62,12 +62,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     <Box sx={{ bgcolor: "#FFFFFF" }}>
       <PageHero
         eyebrow="Catalogue · 商品一覧"
-        heading={
-          <>
-            飾るための、<br />
-            <em>道具一式。</em>
-          </>
-        }
+        heading="カタログ"
         subtitle="— Built for collectors who actually display their cards."
         statsWrap
         stats={[
