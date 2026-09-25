@@ -14,7 +14,7 @@ export default function SplitSectionHeading({ title, description }: SplitSection
         display: "grid",
         gridTemplateColumns: { xs: "1fr", md: "1fr 1.4fr" },
         gap: { xs: 3, md: 10 },
-        mb: { xs: 4, md: 8 },
+        mb: { xs: 4, md: 5 },
         alignItems: "end",
       }}
     >

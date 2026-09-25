@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
-import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
+import { FONT_DISPLAY, PHRASE_WRAP_SX } from "@/theme/themeConstants";
 import Image from "next/image";
 import PillLink from "@/components/PillLink";
 import { isUploadedImageUrl } from "@/lib/images";
@@ -17,7 +17,7 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
       component="section"
       sx={{
         position: "relative",
-        py: { xs: 4, md: 12.5 },
+        py: { xs: 4, md: 6 },
         background:
           "radial-gradient(ellipse at 80% 20%, rgba(180, 83, 9, 0.04), transparent 50%), #FFFFFF",
       }}
@@ -34,23 +34,6 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
           {/* Text side */}
           <Box>
             <Box
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 1.5,
-                mb: { xs: 2.5, md: 4 },
-                fontSize: "12px",
-                fontWeight: 600,
-                letterSpacing: "0.15em",
-                textTransform: "uppercase",
-                color: "primary.main",
-              }}
-            >
-              <Box sx={{ width: 28, height: "1px", bgcolor: "primary.main" }} />
-              Catalogue 2026 · Edition I
-            </Box>
-
-            <Box
               component="h1"
               sx={{
                 fontFamily: FONT_DISPLAY,
@@ -59,6 +42,7 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
                 lineHeight: 0.96,
                 letterSpacing: "-0.04em",
                 color: "text.primary",
+                mt: 0,
                 mb: { xs: 2.5, md: 4 },
                 "& em": { fontStyle: "normal", color: "primary.main" },
               }}
@@ -72,27 +56,16 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
 
             <Box
               sx={{
-                fontFamily: FONT_ITALIC,
-                fontStyle: "italic",
-                fontSize: "20px",
-                color: "primary.main",
-                mb: 2.5,
-                letterSpacing: "0.02em",
-              }}
-            >
-              飾らない愛、はない。
-            </Box>
-
-            <Box
-              sx={{
                 fontSize: "18px",
                 lineHeight: 1.6,
                 color: "secondary.main",
                 mb: 1.5,
                 maxWidth: 480,
+                // 狭い画面で「…ディスプレ／イ。」と切れないよう、<wbr> の位置でだけ改行する
+                ...PHRASE_WRAP_SX,
               }}
             >
-              本当に好きな一枚のためのアクリルディスプレイ。
+              一枚一枚を主役にする<wbr />アクリルディスプレイ。
             </Box>
 
             <Box
@@ -103,11 +76,12 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
                 lineHeight: 1.85,
                 maxWidth: 460,
                 mb: { xs: 3.5, md: 5 },
+                ...PHRASE_WRAP_SX,
               }}
             >
-              小さな個人工房から、一つずつ手作りでお届けします。
+              飾るカードが主役になるよう
               <br />
-              コレクターが、コレクターのために設計しました。
+              シンプルかつ<wbr />機能性のあるデザインを<wbr />探究しました
             </Box>
 
             {/* CTA */}
@@ -121,8 +95,8 @@ const HeroSection = ({ heroImage }: HeroSectionProps) => {
           <Box
             sx={{
               position: "relative",
-              // スマホは正方形にして、ファーストビュー後の縦の占有を抑える
-              aspectRatio: { xs: "1 / 1", md: "5 / 6" },
+              // 正方形にして、ヒーローの縦の占有（見出しの上下にできる空白）を抑える
+              aspectRatio: "1 / 1",
               borderRadius: "4px",
               overflow: "hidden",
               boxShadow:

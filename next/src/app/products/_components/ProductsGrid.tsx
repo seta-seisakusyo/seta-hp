@@ -25,7 +25,7 @@ const ProductsGrid: React.FC<Props> = ({ products }) => {
   }
 
   return (
-    <Box component="section" sx={{ py: { xs: 4, md: 12 } }}>
+    <Box component="section" sx={{ py: { xs: 4, md: 6 } }}>
       <SectionContainer>
         <Box
           sx={{

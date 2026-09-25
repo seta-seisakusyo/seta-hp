@@ -110,17 +110,23 @@ function storedText(requiredMessage: string, lengthMessage?: string) {
  * http(s) スキームのみを許可するURLスキーマを生成する。
  * `javascript:` や `data:` などのスキームは new URL() では解析が通ってしまうため、
  * protocol を明示的に検査して格納・描画時の XSS（例: <a href="javascript:...">）を防ぐ。
+ * allowedHosts を指定すると、そのドメイン（とサブドメイン）以外を拒否する。
  */
-function makeHttpUrlSchema(message: string) {
+function makeHttpUrlSchema(
+  message: string,
+  { maxLength = VARCHAR_MAX, allowedHosts }: { maxLength?: number; allowedHosts?: readonly string[] } = {}
+) {
   return z
     .string()
-    .max(VARCHAR_MAX, { message })
+    .max(maxLength, { message })
     .refine(
       (v) => {
         if (!v) return true;
         try {
-          const { protocol } = new URL(v);
-          return protocol === "http:" || protocol === "https:";
+          const { protocol, hostname } = new URL(v);
+          if (protocol !== "http:" && protocol !== "https:") return false;
+          return !allowedHosts ||
+            allowedHosts.some((host) => hostname === host || hostname.endsWith(`.${host}`));
         } catch {
           return false;
         }
@@ -128,11 +134,19 @@ function makeHttpUrlSchema(message: string) {
       { message }
     )
     .transform((value) => xss(value))
-    .pipe(z.string().max(VARCHAR_MAX, { message }))
+    .pipe(z.string().max(maxLength, { message }))
     .transform((value) => value || null);
 }
 
 const purchaseUrlSchema = makeHttpUrlSchema("購入URLは http(s) 形式の有効なURLを指定してください");
+
+// Amazon の商品URLはコピー時にスラッグや追跡パラメータが付いて長くなるため、列を VARCHAR(512) にしている。
+export const AMAZON_URL_MAX = 512;
+const AMAZON_HOSTS = ["amazon.co.jp", "amazon.com", "amzn.asia", "amzn.to"] as const;
+const amazonUrlSchema = makeHttpUrlSchema(
+  `AmazonのURLは amazon.co.jp 等の http(s) URL を${AMAZON_URL_MAX}文字以内で指定してください`,
+  { maxLength: AMAZON_URL_MAX, allowedHosts: AMAZON_HOSTS }
+);
 
 const idSchema = z
   .number({ required_error: "IDは必須です", invalid_type_error: "IDは必須です" })
@@ -157,6 +171,7 @@ export const ProductCreateSchema = z.object({
   isPublished: z.boolean().optional(),
   isHeroImage: z.boolean().optional(),
   purchaseUrl: purchaseUrlSchema.optional().nullable(),
+  amazonUrl: amazonUrlSchema.optional().nullable(),
 });
 
 export const ProductUpdateSchema = ProductCreateSchema.partial().extend({

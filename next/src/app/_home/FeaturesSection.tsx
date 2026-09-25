@@ -32,7 +32,7 @@ const FEATURES = [
 
 const FeaturesSection = () => {
   return (
-    <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 6, md: 15 } }}>
+    <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 6, md: 9 } }}>
       <SectionContainer>
         <SplitSectionHeading
           title={<>長く、<em>共に。</em></>}

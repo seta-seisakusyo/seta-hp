@@ -14,7 +14,7 @@ interface Props {
  */
 export default function EmptyState({ eyebrow = "Coming Soon", title, description }: Props) {
   return (
-    <Box component="section" sx={{ py: { xs: 8, md: 12 }, bgcolor: "background.alt" }}>
+    <Box component="section" sx={{ py: { xs: 5, md: 8 }, bgcolor: "background.alt" }}>
       <SectionContainer>
         <Box
           sx={{

@@ -43,7 +43,7 @@ export default function Footer() {
       sx={{
         backgroundColor: "background.dark",
         color: "rgba(255,255,255,0.55)",
-        pt: { xs: 5, md: 10 },
+        pt: { xs: 5, md: 7 },
         pb: 5,
         borderTop: "1px solid rgba(255,255,255,0.08)",
       }}
@@ -55,7 +55,7 @@ export default function Footer() {
             // スマホもリンク列は2列にして縦の長さを抑える（ブランド欄は全幅）
             gridTemplateColumns: { xs: "1fr 1fr", md: "2fr 1fr 1fr 1fr" },
             gap: { xs: 3.5, md: 7.5 },
-            pb: { xs: 4, md: 7 },
+            pb: { xs: 4, md: 5 },
             borderBottom: "1px solid rgba(255,255,255,0.08)",
           }}
         >
