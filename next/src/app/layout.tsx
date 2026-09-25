@@ -160,7 +160,7 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            {/* ネイティブスクロールを使用（simplebar-react は #245 で撤去、装飾は globals.css で対応）。
+            {/* ネイティブスクロールを使用（simplebar-react は #245 で撤去、スクロールバーは globals.css で非表示）。
                 position: relative は ReviewOverlay のピン (position: absolute) の基準 */}
             <div style={{ position: "relative", minHeight: "100vh" }}>
               <Header />

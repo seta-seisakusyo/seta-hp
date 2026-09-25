@@ -18,7 +18,7 @@ interface Props {
 
 const RelatedProducts: React.FC<Props> = ({ products }) => {
   return (
-    <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 8, md: 12 } }}>
+    <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 5, md: 12 } }}>
       <SectionContainer>
         <SectionHeader title="Related" titleJa="関連商品" marginBottom={6} />
 

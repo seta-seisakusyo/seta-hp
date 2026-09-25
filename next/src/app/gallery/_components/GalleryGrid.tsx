@@ -42,16 +42,16 @@ function WorkProductLinks({
     >
       <Box
         sx={{
-          fontSize: "11px",
+          fontSize: "12px",
           letterSpacing: "0.12em",
           color: dark ? "rgba(255,255,255,0.72)" : "text.secondary",
           fontWeight: 500,
-          mb: 0.75,
+          mb: 0.25,
         }}
       >
         この展示に使った商品
       </Box>
-      <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexWrap: "wrap", gap: 1 }}>
+      <Box component="ul" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexWrap: "wrap", columnGap: 2 }}>
         {products.map((product) => (
           <Box component="li" key={product.id}>
             <Box
@@ -61,6 +61,7 @@ function WorkProductLinks({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 0.75,
+                minHeight: 40,
                 fontSize: "13px",
                 fontWeight: 500,
                 color: dark ? "#FFFFFF" : "primary.main",
@@ -111,7 +112,7 @@ const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
   }
 
   return (
-    <Box component="section" sx={{ py: { xs: 8, md: 12 } }}>
+    <Box component="section" sx={{ py: { xs: 4, md: 12 } }}>
       <SectionContainer>
         <Box
           sx={{
@@ -156,7 +157,8 @@ const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
                 className="gallery-img"
                 sx={{
                   position: "relative",
-                  aspectRatio: "4 / 5",
+                  // スマホは正方形にして横長写真の上下の余白を減らす
+                  aspectRatio: { xs: "1 / 1", sm: "4 / 5" },
                   bgcolor: "background.alt",
                   overflow: "hidden",
                   borderRadius: "4px",
@@ -213,7 +215,7 @@ const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
                   </Box>
                   <Box
                     sx={{
-                      fontSize: "11px",
+                      fontSize: "12px",
                       letterSpacing: "0.12em",
                       textTransform: "uppercase",
                       color: "text.secondary",
@@ -357,7 +359,7 @@ const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
               </Box>
               <Box
                 sx={{
-                  fontSize: "11px",
+                  fontSize: "12px",
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
                   color: "rgba(255,255,255,0.72)",

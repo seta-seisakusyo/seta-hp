@@ -25,7 +25,7 @@ export default function SectionHeader({
         borderTop: "1px solid",
         borderTopColor: "text.primary",
         pt: 3.5,
-        mb: marginBottom,
+        mb: { xs: 3, md: marginBottom },
         fontFamily: FONT_ITALIC,
         fontStyle: "italic",
         fontSize: "16px",

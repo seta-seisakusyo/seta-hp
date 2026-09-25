@@ -9,6 +9,7 @@ import { serializeJsonLd } from "@/lib/json-ld";
 import ProductDetail from "./_components/ProductDetail";
 import RelatedProducts from "./_components/RelatedProducts";
 import ProductShowcaseWorks from "./_components/ProductShowcaseWorks";
+import ProductPurchaseBar from "./_components/ProductPurchaseBar";
 import type { WorkSummary } from "@/lib/types/work";
 import SectionContainer from "@/components/SectionContainer";
 import DarkCtaSection from "@/components/DarkCtaSection";
@@ -123,6 +124,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </SectionContainer>
         {showcaseWorks.length > 0 && <ProductShowcaseWorks works={showcaseWorks} />}
         {relatedProducts.length > 0 && <RelatedProducts products={relatedProducts} />}
+        {/* スマホの購入バー。sticky なので、下の特注CTAに差し掛かるとここで止まる */}
+        <ProductPurchaseBar product={product} />
         <DarkCtaSection
           heading={<><em>サイズも枚数も、</em><br />ご相談ください。</>}
           body="お手持ちのカードや飾る場所に合わせた特注ディスプレイを、一品から制作します。"

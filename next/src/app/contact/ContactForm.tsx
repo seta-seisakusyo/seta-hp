@@ -53,7 +53,7 @@ const Field: React.FC<FieldProps> = ({ label, labelEn, required, children }) => 
     >
       <Box
         sx={{
-          fontSize: "11px",
+          fontSize: "12px",
           fontWeight: 600,
           letterSpacing: "0.18em",
           textTransform: "uppercase",
