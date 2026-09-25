@@ -66,6 +66,13 @@ model Product {
   isHeroImage Boolean  @default(false)
   purchaseUrl String?
   amazonUrl   String?  @db.VarChar(512)
+  // 検索エンジン向け。未設定なら description / tags から補う。
+  seoKeywords     String? @db.VarChar(512)
+  metaDescription String? @db.VarChar(320)
+  // 設計ツール（designer.kaza-love.com）から登録した商品の元になった設計。
+  // 同じ設計からの再登録は同じ商品の更新として扱うため一意にする。
+  designerDesignId Int?    @unique
+  designerUrl      String? @db.VarChar(512)
   works       WorkProduct[]
 
   @@index([category])
