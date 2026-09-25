@@ -45,6 +45,16 @@ export const COLOR_PRIMARY = "#B45309";
 export const COLOR_DARK_ACCENT = "#E5AC60";
 export const HEADER_HEIGHTS = { mobile: 60, desktop: 72 } as const;
 
+/**
+ * 見出し要素（h1〜h4）以外のタイトルで、日本語を単語の途中で改行しないための sx。
+ * h1〜h4 は globals.css で同じ規則を適用済み。
+ */
+export const PHRASE_WRAP_SX = {
+  wordBreak: "keep-all",
+  overflowWrap: "anywhere",
+  "@supports (word-break: auto-phrase)": { wordBreak: "auto-phrase" },
+} as const;
+
 export const themeConstants = {
   palette: {
     primary: {
@@ -183,6 +193,14 @@ export const themeConstants = {
         },
         "*, *::before, *::after": {
           boxSizing: "border-box",
+        },
+      },
+    },
+    // iOS Safari は 16px 未満の入力欄にフォーカスすると画面を自動ズームするため 16px にする
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          fontSize: "16px",
         },
       },
     },

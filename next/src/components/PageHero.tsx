@@ -45,7 +45,7 @@ export default function PageHero({
     <Box
       component="section"
       sx={{
-        py: { xs: 7, md: 11 },
+        py: { xs: 4, md: 11 },
         background:
           isContact
             ? "radial-gradient(ellipse at 20% 30%, rgba(180,83,9,0.04), transparent 50%), #FFFFFF"
@@ -59,7 +59,7 @@ export default function PageHero({
               display: "inline-flex",
               alignItems: "center",
               gap: 1.5,
-              mb: 3,
+              mb: { xs: 2, md: 3 },
               fontSize: "12px",
               fontWeight: 600,
               letterSpacing: "0.15em",
@@ -92,9 +92,9 @@ export default function PageHero({
             sx={{
               fontFamily: FONT_ITALIC,
               fontStyle: "italic",
-              fontSize: "20px",
+              fontSize: { xs: "17px", md: "20px" },
               color: "text.secondary",
-              mb: 4,
+              mb: { xs: description ? 2.5 : 0, md: 4 },
               letterSpacing: "0.02em",
             }}
           >
@@ -107,10 +107,11 @@ export default function PageHero({
             </Box>
           )}
 
+          {/* 統計行は装飾的な情報なので、スマホでは本題（一覧）を上に詰めるため出さない */}
           {stats && stats.length > 0 && (
             <Box
               sx={{
-                display: "flex",
+                display: { xs: "none", sm: "flex" },
                 gap: 5,
                 pt: 3,
                 borderTop: "1px solid",
@@ -134,7 +135,7 @@ export default function PageHero({
                   </Box>
                   <Box
                     sx={{
-                      fontSize: "11px",
+                      fontSize: "12px",
                       letterSpacing: "0.15em",
                       textTransform: "uppercase",
                       color: "text.secondary",

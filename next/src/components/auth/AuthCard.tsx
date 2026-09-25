@@ -63,7 +63,8 @@ export default function AuthCard({
         {footerText}{" "}
         <Link
           href={footerLinkHref}
-          style={{ color: COLOR_PRIMARY, fontWeight: 500, textDecoration: "none" }}
+          // タップ領域の高さを確保する（行内のまま上下に広げる）
+          style={{ color: COLOR_PRIMARY, fontWeight: 500, textDecoration: "none", display: "inline-block", padding: "12px 4px" }}
         >
           {footerLinkLabel}
         </Link>

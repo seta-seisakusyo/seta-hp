@@ -97,28 +97,6 @@ export default function NotFound() {
       position="relative"
       overflow="hidden"
     >
-      {/* 影付きテキスト */}
-      <Box
-        sx={{
-          position: "absolute",
-          color: "rgba(0, 0, 0, 0.1)",
-          zIndex: 0,
-          transform: "translateY(30px) scale(1.1)",
-          animation: "nfFadeIn 1s ease both",
-          "@keyframes nfFadeIn": {
-            from: { opacity: 0 },
-            to: { opacity: 0.2 },
-          },
-        }}
-      >
-        <Typography
-          variant="h1"
-          sx={{ fontSize: fontSize, fontWeight: "bold", textAlign: "center" }}
-        >
-          404
-        </Typography>
-      </Box>
-
       {/* メインテキスト */}
       <Box
         sx={{
@@ -156,26 +134,26 @@ export default function NotFound() {
 
       {/* 戻るボタン */}
       <Box sx={{ mt: 4, zIndex: 1 }}>
-        <Link href="/">
-          <Button
-            variant="outlined"
-            sx={{
-              color: "black", // テキスト色
-              borderColor: "black", // 外枠の色
-              borderWidth: 2, // 外枠を太く
-              padding: "10px 20px",
-              fontSize: "1rem",
-              fontWeight: "bold",
-              textTransform: "none",
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.1)", // ホバー時の背景色
-                borderColor: "black",
-              },
-            }}
-          >
-            ホームへ戻る
-          </Button>
-        </Link>
+        <Button
+          component={Link}
+          href="/"
+          variant="outlined"
+          sx={{
+            color: "black", // テキスト色
+            borderColor: "black", // 外枠の色
+            borderWidth: 2, // 外枠を太く
+            padding: "10px 20px",
+            fontSize: "1rem",
+            fontWeight: "bold",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "rgba(0, 0, 0, 0.1)", // ホバー時の背景色
+              borderColor: "black",
+            },
+          }}
+        >
+          ホームへ戻る
+        </Button>
       </Box>
 
       {/* 三角形の装飾 */}

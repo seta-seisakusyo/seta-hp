@@ -28,6 +28,11 @@ export function parseProductImages(images: unknown): string[] {
   return [];
 }
 
+/** 商品名をお問い合わせフォームへ引き継ぐURL */
+export function getProductInquiryHref(productName: string): string {
+  return `/contact?product=${encodeURIComponent(productName)}`;
+}
+
 export function getPrimaryProductImage(images: unknown): string | null {
   return parseProductImages(images)[0] ?? null;
 }

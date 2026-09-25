@@ -8,6 +8,9 @@ import { buildProductJsonLd, buildBreadcrumbJsonLd } from "@/lib/structured-data
 import { serializeJsonLd } from "@/lib/json-ld";
 import ProductDetail from "./_components/ProductDetail";
 import RelatedProducts from "./_components/RelatedProducts";
+import ProductShowcaseWorks from "./_components/ProductShowcaseWorks";
+import ProductPurchaseBar from "./_components/ProductPurchaseBar";
+import type { WorkSummary } from "@/lib/types/work";
 import SectionContainer from "@/components/SectionContainer";
 import DarkCtaSection from "@/components/DarkCtaSection";
 import { getPrimaryProductImage } from "@/lib/types/product";
@@ -22,6 +25,8 @@ export const revalidate = 60;
 export async function generateStaticParams() {
   return [];
 }
+
+const SHOWCASE_WORKS_LIMIT = 8;
 
 interface ProductPageProps {
   params: Promise<{ id: string }>;
@@ -58,6 +63,17 @@ async function getRelatedProducts(category: string, excludeId: number) {
   }));
 }
 
+// この商品を使った公開中の展示例（ギャラリー作品）。
+async function getShowcaseWorks(productId: number): Promise<WorkSummary[]> {
+  const prisma = getPrismaClient();
+  return prisma.work.findMany({
+    where: { isPublished: true, products: { some: { productId } } },
+    select: { id: true, title: true, category: true, image: true },
+    orderBy: { createdAt: "desc" },
+    take: SHOWCASE_WORKS_LIMIT,
+  });
+}
+
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { id } = await params;
   const product = await getPublishedProduct(id);
@@ -82,7 +98,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = await getPublishedProduct(id);
   if (!product) notFound();
 
-  const relatedProducts = await getRelatedProducts(product.category, product.id);
+  const [relatedProducts, showcaseWorks] = await Promise.all([
+    getRelatedProducts(product.category, product.id),
+    getShowcaseWorks(product.id),
+  ]);
 
   // 検索結果に価格・在庫を表示させる Product 構造化データと、
   // パンくずリッチリザルト用の BreadcrumbList をサーバーレンダリングで埋め込む。
@@ -103,7 +122,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <SectionContainer sx={{ py: { xs: 4, md: 8 } }}>
           <ProductDetail product={product} />
         </SectionContainer>
+        {showcaseWorks.length > 0 && <ProductShowcaseWorks works={showcaseWorks} />}
         {relatedProducts.length > 0 && <RelatedProducts products={relatedProducts} />}
+        {/* スマホの購入バー。sticky なので、下の特注CTAに差し掛かるとここで止まる */}
+        <ProductPurchaseBar product={product} />
         <DarkCtaSection
           heading={<><em>サイズも枚数も、</em><br />ご相談ください。</>}
           body="お手持ちのカードや飾る場所に合わせた特注ディスプレイを、一品から制作します。"

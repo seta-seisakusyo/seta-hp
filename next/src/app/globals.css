@@ -5,28 +5,36 @@
 
 .grecaptcha-badge { visibility: hidden; }
 
-/* ネイティブスクロールバーの装飾（simplebar-react 撤去に伴う代替 #245） */
-html {
-  scrollbar-width: thin;
-  scrollbar-color: var(--gray-soft) transparent;
+/* スクロールバーは表示しない（スクロール自体はホイール・タッチ・キーボードで可能） */
+* {
+  scrollbar-width: none;
 }
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--gray-soft);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--gray);
+*::-webkit-scrollbar {
+  display: none;
 }
 
-/* Marquee animation for site-wide use */
-@keyframes seta-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+/* 横方向のはみ出しでページが左右にスクロールしないようにする。
+   clip はスクロールコンテナを作らないため、position: sticky を壊さない。 */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* 日本語の見出しを単語の途中で改行しない。
+   auto-phrase 対応ブラウザ（Chrome/Edge）は文節単位、未対応（Safari 等）は
+   keep-all で空白・句読点の位置で改行する。1語が行幅を超える場合だけ任意位置で折り返す。 */
+h1,
+h2,
+h3,
+h4 {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+@supports (word-break: auto-phrase) {
+  h1,
+  h2,
+  h3,
+  h4 {
+    word-break: auto-phrase;
+  }
 }

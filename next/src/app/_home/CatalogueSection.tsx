@@ -1,11 +1,12 @@
 import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
 import {
+  COMPACT_CARD_LAYOUT_SX,
   ProductCardFrame,
   ProductCardMedia,
   ProductPriceRow,
 } from "@/components/product/ProductCardPrimitives";
-import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
+import { FONT_DISPLAY, FONT_ITALIC, PHRASE_WRAP_SX } from "@/theme/themeConstants";
 import Link from "next/link";
 import type { ProductSummary } from "@/lib/types/product";
 import SplitSectionHeading from "./SplitSectionHeading";
@@ -41,7 +42,7 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
   if (products.length === 0) return null;
 
   return (
-    <Box component="section" id="products" sx={{ py: { xs: 10, md: 15 } }}>
+    <Box component="section" id="products" sx={{ py: { xs: 6, md: 15 } }}>
       <SectionContainer>
         <SplitSectionHeading
           title={<>ライン<br /><em>ナップ。</em></>}
@@ -70,7 +71,7 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
-            gap: 3.5,
+            gap: { xs: 2, md: 3.5 },
           }}
         >
           {products.map((p) => {
@@ -82,6 +83,8 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
                 style={{ textDecoration: "none", color: "inherit" }}
               >
                 <ProductCardFrame>
+                  {/* スマホは画像左・情報右の横並びにして、1商品が画面を占有しないようにする */}
+                  <Box sx={COMPACT_CARD_LAYOUT_SX}>
                   {/* Media */}
                   <ProductCardMedia
                     src={p.image}
@@ -104,7 +107,7 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
                           px: "10px",
                           py: "5px",
                           borderRadius: "999px",
-                          fontSize: "10px",
+                          fontSize: { xs: "11px", md: "10px" },
                           fontWeight: 700,
                           letterSpacing: "0.15em",
                           textTransform: "uppercase",
@@ -116,14 +119,16 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
                   />
 
                   {/* Info */}
-                  <Box sx={{ p: "24px 24px 28px" }}>
+                  <Box sx={{ p: { xs: "16px 16px 18px", md: "24px 24px 28px" } }}>
                     {(meta.ref || meta.cap) && (
                       <Box
                         sx={{
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "baseline",
-                          mb: "14px",
+                          flexWrap: "wrap",
+                          gap: 1,
+                          mb: { xs: 1, md: "14px" },
                         }}
                       >
                         <Box
@@ -141,7 +146,7 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
                         <Box
                           component="span"
                           sx={{
-                            fontSize: "11px",
+                            fontSize: "12px",
                             color: "text.secondary",
                             letterSpacing: "0.15em",
                             textTransform: "uppercase",
@@ -155,17 +160,20 @@ const CatalogueSection = ({ products }: CatalogueSectionProps) => {
                     <Box
                       sx={{
                         fontFamily: FONT_DISPLAY,
-                        fontSize: "22px",
+                        fontSize: { xs: "15px", md: "22px" },
                         fontWeight: 700,
                         letterSpacing: "-0.02em",
+                        lineHeight: 1.4,
                         color: "text.primary",
+                        ...PHRASE_WRAP_SX,
                         // 英語ティア名の行を廃止したので、その行が持っていた下余白をここへ寄せる。
-                        mb: "20px",
+                        mb: { xs: 1.5, md: "20px" },
                       }}
                     >
                       {p.name}
                     </Box>
-                    <ProductPriceRow price={p.price} paddingTop="18px" />
+                    <ProductPriceRow price={p.price} paddingTop={{ xs: 1.5, md: "18px" }} />
+                  </Box>
                   </Box>
                 </ProductCardFrame>
               </Link>

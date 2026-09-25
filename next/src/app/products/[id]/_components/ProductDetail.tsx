@@ -2,7 +2,7 @@ import { Box } from "@mui/material";
 import Link from "next/link";
 import ProductImageGallery from "../ProductImageGallery";
 import { getProductCategoryLabel, getStockMeta } from "@/lib/constants/categories";
-import { type Product, parseTags, parseProductImages } from "@/lib/types/product";
+import { type Product, getProductInquiryHref, parseTags, parseProductImages } from "@/lib/types/product";
 import { formatRefNumber } from "@/lib/format";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
@@ -31,19 +31,17 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
           display: "flex",
           alignItems: "center",
           gap: 1,
-          mb: 4,
-          fontSize: "12px",
+          mb: { xs: 2, md: 4 },
+          fontSize: "13px",
           letterSpacing: "0.08em",
           color: "text.secondary",
+          // タップ領域の高さを確保する（見た目の文字サイズは変えない）
+          "& a": { display: "inline-flex", alignItems: "center", minHeight: 40, color: "inherit", textDecoration: "none" },
         }}
       >
-        <Link href="/" style={{ color: "inherit", textDecoration: "none" }}>
-          Home
-        </Link>
+        <Link href="/">Home</Link>
         <Box sx={{ color: "text.disabled" }}>/</Box>
-        <Link href="/products" style={{ color: "inherit", textDecoration: "none" }}>
-          Catalogue
-        </Link>
+        <Link href="/products">Catalogue</Link>
         <Box sx={{ color: "text.disabled" }}>/</Box>
         <Box sx={{ color: "text.primary", fontWeight: 500 }}>Ref. {ref}</Box>
       </Box>
@@ -85,7 +83,7 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
             </Box>
             <Box
               sx={{
-                fontSize: "11px",
+                fontSize: "12px",
                 color: "text.secondary",
                 letterSpacing: "0.15em",
                 textTransform: "uppercase",
@@ -194,7 +192,7 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
                     border: "1px solid",
                     borderColor: "divider",
                     borderRadius: "999px",
-                    fontSize: "11px",
+                    fontSize: "12px",
                     color: "text.secondary",
                     letterSpacing: "0.05em",
                   }}
@@ -254,13 +252,13 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
                     BASE で購入する <span>→</span>
                   </Box>
                 </a>
-                <Box sx={{ fontSize: "11px", color: "text.secondary", mt: 1, textAlign: "center" }}>
+                <Box sx={{ fontSize: "12px", color: "text.secondary", mt: 1, textAlign: "center" }}>
                   外部サイト（BASE）に移動します
                 </Box>
               </Box>
             )}
             <Link
-              href={`/contact?product=${encodeURIComponent(product.name)}`}
+              href={getProductInquiryHref(product.name)}
               style={{ textDecoration: "none" }}
             >
               <Box

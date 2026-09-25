@@ -7,6 +7,7 @@ import {
   VALID_STOCK_OPTIONS,
 } from "@/lib/constants/categories";
 import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
+import { WORK_PRODUCTS_MAX } from "@/lib/work-constants";
 
 const nameSchema = z
   .string()
@@ -168,6 +169,15 @@ const galleryCategorySchema = z
     message: `カテゴリは${VALID_GALLERY_CATEGORIES.join(", ")}のいずれかを指定してください`,
   });
 
+// 作品に使った商品のID。重複は1件にまとめる。未送信（undefined）は「紐づけを変更しない」を表す。
+const workProductIdsSchema = z
+  .array(idSchema, { invalid_type_error: "使用商品の指定が正しくありません" })
+  .transform((ids) => [...new Set(ids)])
+  .pipe(z.array(z.number()).max(WORK_PRODUCTS_MAX, {
+    message: `使用商品は${WORK_PRODUCTS_MAX}件以内で指定してください`,
+  }))
+  .optional();
+
 export const WorkCreateSchema = z.object({
   title: storedText("タイトルは必須です", `タイトルは${VARCHAR_MAX}文字以内で入力してください`),
   description: storedText("説明は必須です"),
@@ -175,6 +185,7 @@ export const WorkCreateSchema = z.object({
   tags: tagsSchema,
   image: optionalImageSchema,
   isPublished: z.boolean().optional(),
+  productIds: workProductIdsSchema,
 });
 
 export const WorkUpdateSchema = WorkCreateSchema.partial().extend({

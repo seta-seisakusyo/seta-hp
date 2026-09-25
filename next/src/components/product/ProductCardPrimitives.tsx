@@ -2,7 +2,17 @@ import type { ReactNode } from "react";
 import { Box } from "@mui/material";
 import Image from "next/image";
 import { isUploadedImageUrl } from "@/lib/images";
-import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
+import { FONT_DISPLAY, FONT_ITALIC, PHRASE_WRAP_SX } from "@/theme/themeConstants";
+
+/**
+ * スマホ幅（sm 未満）でカードの中身を「画像左・情報右」の横並びにする。
+ * 1商品が画面1枚分を占有せず、一覧を見渡せるようにする。
+ */
+export const COMPACT_CARD_LAYOUT_SX = {
+  display: { xs: "grid", sm: "block" },
+  gridTemplateColumns: "36% 1fr",
+  alignItems: "center",
+} as const;
 
 interface ProductCardFrameProps {
   children: ReactNode;
@@ -95,10 +105,50 @@ export function ProductCardMedia({
   );
 }
 
+const CARD_TITLE_VARIANTS = {
+  // 商品一覧: 2行分の高さを確保してカード間で価格行の位置を揃える
+  // スマホの横並びカードでは高さ揃えが不要なので minHeight を外す
+  full: {
+    fontSize: { xs: "15px", sm: "18px" },
+    fontWeight: 700,
+    letterSpacing: "-0.015em",
+    mb: { xs: 1.5, sm: 2.25 },
+    minHeight: { xs: 0, sm: "calc(2 * 1.4 * 18px)" },
+  },
+  compact: { fontSize: "14px", fontWeight: 600, letterSpacing: "-0.01em", mb: 1 },
+} as const;
+
+interface CardTitleProps {
+  children: ReactNode;
+  variant?: keyof typeof CARD_TITLE_VARIANTS;
+}
+
+/** カードのタイトル。2行を超える分は省略する。 */
+export function CardTitle({ children, variant = "full" }: CardTitleProps) {
+  return (
+    <Box
+      sx={{
+        fontFamily: FONT_DISPLAY,
+        color: "text.primary",
+        lineHeight: 1.4,
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden",
+        ...PHRASE_WRAP_SX,
+        ...CARD_TITLE_VARIANTS[variant],
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
 interface ProductPriceRowProps {
   price: number;
   variant?: "full" | "compact";
-  paddingTop?: number | string;
+  /** 数値・文字列、またはブレークポイント別の指定（例: { xs: 1.5, md: "18px" }） */
+  paddingTop?: number | string | Partial<Record<"xs" | "sm" | "md" | "lg" | "xl", number | string>>;
 }
 
 export function ProductPriceRow({ price, variant = "full", paddingTop = 2 }: ProductPriceRowProps) {
@@ -142,7 +192,7 @@ export function ProductPriceRow({ price, variant = "full", paddingTop = 2 }: Pro
       </Box>
       <Box
         sx={{
-          fontSize: "11px",
+          fontSize: "12px",
           color: "text.secondary",
           letterSpacing: "0.12em",
           textTransform: "uppercase",

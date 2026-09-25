@@ -4,6 +4,7 @@ import SectionContainer from "@/components/SectionContainer";
 import XIcon from "@/components/XIcon";
 import { X_PROFILE_URL } from "@/lib/site-config";
 import { PRODUCT_CATEGORIES } from "@/lib/constants/categories";
+import { POLICY_LINKS } from "@/lib/navigation";
 import { COLOR_DARK_ACCENT, FONT_DISPLAY } from "@/theme/themeConstants";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
@@ -31,12 +32,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   },
   {
     title: "Policies / 規約",
-    links: [
-      { label: "配送について", href: "/shipping" },
-      { label: "特定商取引法", href: "/legal" },
-      { label: "プライバシー", href: "/privacy-policy" },
-      { label: "会社情報", href: "/company" },
-    ],
+    links: [...POLICY_LINKS],
   },
 ];
 
@@ -47,7 +43,7 @@ export default function Footer() {
       sx={{
         backgroundColor: "background.dark",
         color: "rgba(255,255,255,0.55)",
-        pt: { xs: 8, md: 10 },
+        pt: { xs: 5, md: 10 },
         pb: 5,
         borderTop: "1px solid rgba(255,255,255,0.08)",
       }}
@@ -56,14 +52,15 @@ export default function Footer() {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "2fr 1fr 1fr 1fr" },
-            gap: { xs: 5, md: 7.5 },
-            pb: 7,
+            // スマホもリンク列は2列にして縦の長さを抑える（ブランド欄は全幅）
+            gridTemplateColumns: { xs: "1fr 1fr", md: "2fr 1fr 1fr 1fr" },
+            gap: { xs: 3.5, md: 7.5 },
+            pb: { xs: 4, md: 7 },
             borderBottom: "1px solid rgba(255,255,255,0.08)",
           }}
         >
           {/* Brand */}
-          <Box>
+          <Box sx={{ gridColumn: { xs: "1 / -1", md: "auto" } }}>
             <Box
               sx={{
                 fontFamily: FONT_DISPLAY,
@@ -111,9 +108,9 @@ export default function Footer() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                mt: 2.5,
-                width: 36,
-                height: 36,
+                mt: 2,
+                width: 44,
+                height: 44,
                 borderRadius: "50%",
                 border: "1px solid rgba(255,255,255,0.15)",
                 color: "rgba(255,255,255,0.6)",
@@ -139,24 +136,30 @@ export default function Footer() {
                   letterSpacing: "0.18em",
                   textTransform: "uppercase",
                   color: COLOR_DARK_ACCENT,
-                  mb: 2.5,
+                  mb: { xs: 1, md: 1.5 },
                 }}
               >
                 {col.title}
               </Typography>
               <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0 }}>
                 {col.links.map((link) => (
-                  <Box component="li" key={link.label} sx={{ mb: 1.25 }}>
-                    <Link
+                  <Box component="li" key={link.label}>
+                    {/* タップ領域を高さ 40px 確保する（行間の余白をリンク自身の高さに置き換え） */}
+                    <Box
+                      component={Link}
                       href={link.href}
-                      style={{
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        minHeight: 40,
                         color: "rgba(255,255,255,0.75)",
                         textDecoration: "none",
-                        fontSize: "13px",
+                        fontSize: "14px",
+                        "&:hover": { color: "#FFFFFF" },
                       }}
                     >
                       {link.label}
-                    </Link>
+                    </Box>
                   </Box>
                 ))}
               </Box>
@@ -166,7 +169,7 @@ export default function Footer() {
 
         <Box
           sx={{
-            mt: 4,
+            mt: { xs: 3, md: 4 },
             display: "flex",
             justifyContent: "space-between",
             flexWrap: "wrap",
