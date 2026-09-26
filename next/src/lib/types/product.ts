@@ -44,6 +44,40 @@ export function getPurchaseLinks(
   return links;
 }
 
+/** 対応スリーブ（DB の Product.sleeve。書き込み時に productSleeveSchema で検証済み） */
+export interface ProductSleeve {
+  name: string;
+  maker: string | null;
+  widthMm: number | null;
+  heightMm: number | null;
+  thicknessMm: number | null;
+  count: number | null;
+  /** お客様がスリーブをお持ちで「スリーブなし」を選んだ場合の値引き額（円） */
+  discount: number | null;
+}
+
+const optionalNumber = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
+
+/**
+ * Product.sleeve（JSON）を表示用に読み取る。名前がなければ未登録として null。
+ * クライアントでも使うため zod には頼らず、型の合わない項目は null として扱う。
+ */
+export function parseProductSleeve(value: unknown): ProductSleeve | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.name !== "string" || !record.name) return null;
+  return {
+    name: record.name,
+    maker: typeof record.maker === "string" && record.maker ? record.maker : null,
+    widthMm: optionalNumber(record.widthMm),
+    heightMm: optionalNumber(record.heightMm),
+    thicknessMm: optionalNumber(record.thicknessMm),
+    count: optionalNumber(record.count),
+    discount: optionalNumber(record.discount),
+  };
+}
+
 /** 商品名をお問い合わせフォームへ引き継ぐURL */
 export function getProductInquiryHref(productName: string): string {
   return `/contact?product=${encodeURIComponent(productName)}`;

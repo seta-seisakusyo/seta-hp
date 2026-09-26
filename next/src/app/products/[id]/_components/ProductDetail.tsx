@@ -8,7 +8,9 @@ import {
   getPurchaseLinks,
   parseTags,
   parseProductImages,
+  parseProductSleeve,
 } from "@/lib/types/product";
+import ProductSleeveInfo from "./ProductSleeveInfo";
 import { formatRefNumber } from "@/lib/format";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
@@ -24,6 +26,7 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
   const productImages = parseProductImages(product.images);
   const purchaseLinks = getPurchaseLinks(product);
   const hasPurchaseLinks = purchaseLinks.length > 0;
+  const sleeve = parseProductSleeve(product.sleeve);
 
   const ref = formatRefNumber(product.id);
   const stockMeta = getStockMeta(product.stock);
@@ -210,6 +213,8 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
               ))}
             </Box>
           )}
+
+          {sleeve && <ProductSleeveInfo sleeve={sleeve} purchaseLinks={purchaseLinks} />}
 
           {/* Shipping note */}
           <Box

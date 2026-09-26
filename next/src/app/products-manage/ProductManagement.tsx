@@ -18,6 +18,12 @@ import MultiImageUpload from "@/components/MultiImageUpload";
 import DeleteConfirmDialog from "@/components/manage/DeleteConfirmDialog";
 import ResourceActions from "@/components/manage/ResourceActions";
 import FormDialog from "@/components/manage/FormDialog";
+import ProductSleeveFields, {
+  emptySleeveForm,
+  toSleeveForm,
+  toSleevePayload,
+  type SleeveForm,
+} from "./ProductSleeveFields";
 import {
   CategoryAndTagsFields,
   ResourcePublishedField,
@@ -34,7 +40,7 @@ import {
   getProductCategoryLabel,
   getStockMeta,
 } from "@/lib/constants/categories";
-import { parseProductImages, type Product } from "@/lib/types/product";
+import { parseProductImages, parseProductSleeve, type Product } from "@/lib/types/product";
 import { META_DESCRIPTION_MAX } from "@/lib/seo-keywords";
 
 interface ProductManagementProps {
@@ -55,6 +61,7 @@ interface ProductForm {
   amazonUrl: string;
   seoKeywords: string;
   metaDescription: string;
+  sleeve: SleeveForm;
 }
 
 const createProductForm = (): ProductForm => ({
@@ -71,6 +78,7 @@ const createProductForm = (): ProductForm => ({
   amazonUrl: "",
   seoKeywords: "",
   metaDescription: "",
+  sleeve: emptySleeveForm(),
 });
 
 const editProductForm = (product: Product): ProductForm => ({
@@ -87,6 +95,7 @@ const editProductForm = (product: Product): ProductForm => ({
   amazonUrl: product.amazonUrl || "",
   seoKeywords: product.seoKeywords || "",
   metaDescription: product.metaDescription || "",
+  sleeve: toSleeveForm(parseProductSleeve(product.sleeve)),
 });
 
 const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
@@ -117,6 +126,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
     amazonUrl: form.amazonUrl || null,
     seoKeywords: form.seoKeywords || null,
     metaDescription: form.metaDescription || null,
+    sleeve: toSleevePayload(form.sleeve),
   }, id), [save]);
   const editor = useResourceEditor<Product, ProductForm>({
     createForm: createProductForm,
@@ -304,6 +314,10 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
           minRows={2}
           inputProps={{ maxLength: META_DESCRIPTION_MAX }}
           helperText={`${editor.form.metaDescription.length}/${META_DESCRIPTION_MAX}文字。未入力なら商品説明を使います（120文字前後が目安）`}
+        />
+        <ProductSleeveFields
+          value={editor.form.sleeve}
+          onChange={(sleeve) => editor.setField("sleeve", sleeve)}
         />
         {editor.selectedResource?.designerUrl && (
           <Typography variant="body2">
