@@ -4,7 +4,6 @@ import HeroSection from "./_home/HeroSection";
 import CatalogueSection from "./_home/CatalogueSection";
 import { getHomeProductData } from "./_home/getHomeProductData";
 import FeaturesSection from "./_home/FeaturesSection";
-import QuizTeaserSection from "./_home/QuizTeaserSection";
 import CTASection from "./_home/CTASection";
 
 // ヒーロー画像の抽選をリクエスト毎に行うため動的レンダリングとする。
@@ -33,7 +32,7 @@ export default async function HomePage() {
       <HeroSection heroImage={heroImage} />
       <CatalogueSection products={catalogueProducts} />
       <FeaturesSection />
-      <QuizTeaserSection />
+      {/* サイズ診断（QuizTeaserSection）は #326 で非表示。診断機能の公開時に戻す */}
       <CTASection />
     </Box>
   );

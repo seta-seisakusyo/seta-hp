@@ -176,6 +176,46 @@ const metaDescriptionSchema = z.string()
   }))
   .transform((value) => value || null);
 
+const sleeveMmSchema = z
+  .number({ invalid_type_error: "スリーブの寸法は数値で指定してください" })
+  .positive({ message: "スリーブの寸法は0より大きい値にしてください" })
+  .max(1000, { message: "スリーブの寸法は1000mm以下にしてください" });
+
+/**
+ * 対応スリーブ。商品詳細の「対応スリーブ」欄に表示する。
+ * discount は、お客様がスリーブをお持ちで「スリーブなし」を選んだ場合の値引き額（円）。
+ */
+export const productSleeveSchema = z.object({
+  name: storedText("対応スリーブの名前は必須です", `対応スリーブの名前は${VARCHAR_MAX}文字以内で入力してください`),
+  maker: z
+    .string()
+    .transform((value) => xss(value.trim()))
+    .pipe(z.string().max(100, { message: "スリーブのメーカーは100文字以内で入力してください" }))
+    .transform((value) => value || null)
+    .optional()
+    .nullable(),
+  widthMm: sleeveMmSchema.optional().nullable(),
+  heightMm: sleeveMmSchema.optional().nullable(),
+  thicknessMm: sleeveMmSchema.optional().nullable(),
+  count: z
+    .number({ invalid_type_error: "スリーブの枚数は整数で指定してください" })
+    .int({ message: "スリーブの枚数は整数で指定してください" })
+    .min(1, { message: "スリーブの枚数は1以上にしてください" })
+    .max(1000, { message: "スリーブの枚数は1000以下にしてください" })
+    .optional()
+    .nullable(),
+  discount: z
+    .number({ invalid_type_error: "値引き額は整数で指定してください" })
+    .int({ message: "値引き額は整数で指定してください" })
+    .min(0, { message: "値引き額は0以上にしてください" })
+    .max(DATABASE_INT_MAX, { message: "値引き額が大きすぎます" })
+    .optional()
+    .nullable(),
+});
+export type ProductSleeveInput = z.infer<typeof productSleeveSchema>;
+// null は「対応スリーブなし（登録を消す）」、未送信は「変更しない」。
+const optionalSleeveSchema = productSleeveSchema.nullable().optional();
+
 export const ProductCreateSchema = z.object({
   name: storedText("名前は必須です", `名前は${VARCHAR_MAX}文字以内で入力してください`),
   description: storedText("説明は必須です"),
@@ -190,6 +230,7 @@ export const ProductCreateSchema = z.object({
   amazonUrl: amazonUrlSchema.optional().nullable(),
   seoKeywords: seoKeywordsSchema.optional().nullable(),
   metaDescription: metaDescriptionSchema.optional().nullable(),
+  sleeve: optionalSleeveSchema,
 });
 
 export const ProductUpdateSchema = ProductCreateSchema.partial().extend({
@@ -213,6 +254,8 @@ export const DesignerProductSchema = z.object({
   purchaseUrl: purchaseUrlSchema.optional().nullable(),
   seoKeywords: seoKeywordsSchema.optional().nullable(),
   metaDescription: metaDescriptionSchema.optional().nullable(),
+  // 設計で選んだスリーブ（名前・寸法・枚数）と、登録画面で入れた値引き額
+  sleeve: optionalSleeveSchema,
 });
 export type DesignerProductInput = z.infer<typeof DesignerProductSchema>;
 

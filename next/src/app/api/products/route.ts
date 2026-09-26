@@ -14,6 +14,7 @@ import {
 } from "@/lib/managed-resource-route";
 import { collectImageUrls, deleteUnusedUploadedFiles } from "@/lib/uploaded-files";
 import { revalidateProductPages } from "@/lib/cache-tags";
+import { toSleeveData } from "@/lib/product-sleeve";
 
 // 商品一覧取得（公開用）
 export async function GET(req: NextRequest) {
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
           amazonUrl: true,
           seoKeywords: true,
           metaDescription: true,
+          sleeve: true,
           designerDesignId: true,
           designerUrl: true,
         },
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
       amazonUrl,
       seoKeywords,
       metaDescription,
+      sleeve,
     } = parsed;
 
     await prisma.product.create({
@@ -95,6 +98,7 @@ export async function POST(req: NextRequest) {
         amazonUrl: amazonUrl ?? null,
         seoKeywords: seoKeywords ?? null,
         metaDescription: metaDescription ?? null,
+        sleeve: toSleeveData(sleeve),
       },
       select: { id: true },
     });
@@ -128,6 +132,7 @@ export async function PUT(req: NextRequest) {
       amazonUrl,
       seoKeywords,
       metaDescription,
+      sleeve,
     } = parsed;
 
     // 画像変更時だけ旧画像を取得する。対象なしの更新は Prisma P2025 で404にする。
@@ -154,6 +159,7 @@ export async function PUT(req: NextRequest) {
         amazonUrl,
         seoKeywords,
         metaDescription,
+        sleeve: toSleeveData(sleeve),
       },
       select: { id: true },
     });
