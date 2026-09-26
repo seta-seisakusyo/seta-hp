@@ -6,6 +6,7 @@ import { handleApiError } from "@/lib/api-utils";
 import { revalidateProductPages } from "@/lib/cache-tags";
 import { DESIGNER_PRODUCT_MAX_IMAGES, verifyDesignerRequest } from "@/lib/designer-integration";
 import { parsePositiveId } from "@/lib/parse-id";
+import { toSleeveData } from "@/lib/product-sleeve";
 import { collectImageUrls, deleteUnusedUploadedFiles } from "@/lib/uploaded-files";
 import { removeSavedUploads, saveUploadedImage } from "@/lib/upload-storage";
 import { DesignerProductSchema, type DesignerProductInput } from "@/lib/validation";
@@ -103,6 +104,8 @@ export async function POST(req: NextRequest) {
       seoKeywords: input.seoKeywords ?? null,
       metaDescription: input.metaDescription ?? null,
       designerUrl: input.designerUrl ?? null,
+      // 未送信なら変えない（HP 管理画面で入れた値を残す）
+      sleeve: toSleeveData(input.sleeve),
     };
     const existing = await prisma.product.findUnique({
       where: { designerDesignId: input.designerDesignId },

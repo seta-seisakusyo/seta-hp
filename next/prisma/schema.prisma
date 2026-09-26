@@ -73,6 +73,9 @@ model Product {
   // 同じ設計からの再登録は同じ商品の更新として扱うため一意にする。
   designerDesignId Int?    @unique
   designerUrl      String? @db.VarChar(512)
+  // 対応スリーブ（名前・メーカー・寸法・付属枚数・スリーブなし選択時の値引き額）。
+  // 形は lib/validation.ts の productSleeveSchema。設計ツールからの登録でも送られる。
+  sleeve           Json?
   works       WorkProduct[]
 
   @@index([category])

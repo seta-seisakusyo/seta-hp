@@ -19,6 +19,7 @@ const baseProduct: Product = {
   metaDescription: null,
   designerDesignId: null,
   designerUrl: null,
+  sleeve: null,
 };
 
 describe("buildProductJsonLd", () => {

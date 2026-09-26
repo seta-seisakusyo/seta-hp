@@ -161,3 +161,33 @@ describe("設計ツール連携: 状態の取得", () => {
     expect((await GET(get("?designerDesignId=12", "wrong"))).status).toBe(401);
   });
 });
+
+describe("設計ツール連携: 対応スリーブ", () => {
+  const sleeve = {
+    name: "フルプロテクトスリーブ R(レギュラー)サイズ",
+    maker: "河島製作所",
+    widthMm: 71,
+    heightMm: 96,
+    thicknessMm: 3,
+    count: 16,
+    discount: 1760,
+  };
+
+  it("設計のスリーブと値引き額を商品に保存する", async () => {
+    const response = await POST(post({ ...payload, sleeve }));
+    expect(response.status).toBe(201);
+    expect(mocks.product.create.mock.calls[0][0].data.sleeve).toEqual(sleeve);
+  });
+
+  it("スリーブを送らない更新では、HP で入れた対応スリーブを変えない", async () => {
+    mocks.product.findUnique.mockResolvedValue({ id: 40, images: [] });
+    await POST(post(payload, { images: 0 }));
+    expect(mocks.product.update.mock.calls[0][0].data.sleeve).toBeUndefined();
+  });
+
+  it("不正なスリーブ（寸法0・枚数が小数）は 400 で保存しない", async () => {
+    expect((await POST(post({ ...payload, sleeve: { ...sleeve, widthMm: 0 } }))).status).toBe(400);
+    expect((await POST(post({ ...payload, sleeve: { ...sleeve, count: 1.5 } }))).status).toBe(400);
+    expect(mocks.product.create).not.toHaveBeenCalled();
+  });
+});

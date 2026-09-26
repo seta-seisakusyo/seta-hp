@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -52,5 +53,20 @@ it("Amazon URL を作成時に保存し、更新時に空文字で明示クリ�
 });
 it("Amazon 以外のURLを Amazon URL に入れると DB 到達前に400にする", async () => {
   expect((await updateProduct(request({ id: 1, amazonUrl: "https://example.thebase.in/items/1" }))).status).toBe(400);
+  expect(mocks.product.update).not.toHaveBeenCalled();
+});
+it("対応スリーブを保存し、null で登録を消せる", async () => {
+  const sleeve = { name: "フルプロテクトスリーブ", maker: "", widthMm: 71, heightMm: 96, thicknessMm: 3, count: 8, discount: 880 };
+  expect((await createProduct(request({ ...resources[0].base, name: "商品", sleeve }))).status).toBe(200);
+  expect(mocks.product.create).toHaveBeenCalledWith(expect.objectContaining({
+    data: expect.objectContaining({ sleeve: { ...sleeve, maker: null } }),
+  }));
+  expect((await updateProduct(request({ id: 1, sleeve: null }))).status).toBe(200);
+  expect(mocks.product.update.mock.calls[0][0].data.sleeve).toBe(Prisma.JsonNull);
+});
+it("対応スリーブの名前がない・値引き額が負の値は DB 到達前に400にする", async () => {
+  expect((await updateProduct(request({ id: 1, sleeve: { name: "" } }))).status).toBe(400);
+  expect((await updateProduct(request({ id: 1, sleeve: { name: "S", discount: -1 } }))).status).toBe(400);
+  expect((await updateProduct(request({ id: 1, sleeve: { name: "S", widthMm: "abc" } }))).status).toBe(400);
   expect(mocks.product.update).not.toHaveBeenCalled();
 });

@@ -135,6 +135,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 
 - **User**: ユーザー (ADMIN/EDITOR/VIEWER roles, cuid ID)
 - **Product**: 商品 (名前, 価格, カテゴリ, 複数画像 Json, 在庫状況, 公開フラグ, ヒーロー画像フラグ, 外部購入URL: BASE の `purchaseUrl` / Amazon の `amazonUrl`（VARCHAR(512)、amazon.co.jp 等のドメインのみ許可）)
+  - `sleeve`（JSON）: 対応スリーブ（名前・メーカー・寸法・付属枚数・「スリーブなし」選択時の値引き額）。形は `productSleeveSchema`、読み取りは `parseProductSleeve()`。設計ツールからの商品登録で設計のスリーブが送られ（未送信なら変更しない）、HP 管理画面でも編集できる。商品詳細に「対応スリーブ」欄として表示
 - **Work**: ギャラリー作品（`/gallery` に表示）
 - **WorkProduct**: 作品とそれに使った商品の紐づけ（多対多）。管理画面の作品編集で設定し、商品詳細⇔ギャラリーの相互リンクに使う。公開側は双方とも公開中のものだけ表示
 - **News**: お知らせ (日付, タイトル, JSON contents)
