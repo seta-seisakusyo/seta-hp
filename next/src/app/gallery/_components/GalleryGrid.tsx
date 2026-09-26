@@ -20,6 +20,10 @@ interface Props {
 
 const workCardId = (id: number) => `work-${id}`;
 
+// 作品画像の枠の縦横比。サムネイルと拡大表示で揃える。
+// スマホは正方形にして横長写真の上下の余白を減らし、それ以上は縦長（4:5）。
+const WORK_IMAGE_ASPECT = { xs: "1 / 1", sm: "4 / 5" } as const;
+
 /** 「この展示に使った商品」のリンク一覧。tone はカード（明）と拡大表示（暗）の配色 */
 function WorkProductLinks({
   products,
@@ -157,8 +161,7 @@ const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
                 className="gallery-img"
                 sx={{
                   position: "relative",
-                  // スマホは正方形にして横長写真の上下の余白を減らす
-                  aspectRatio: { xs: "1 / 1", sm: "4 / 5" },
+                  aspectRatio: WORK_IMAGE_ASPECT,
                   bgcolor: "background.alt",
                   overflow: "hidden",
                   borderRadius: "4px",
@@ -287,7 +290,9 @@ const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
             bgcolor: "transparent",
             boxShadow: "none",
             overflow: "visible",
-            width: "min(92vw, 1200px)",
+            // サムネイルと同じ縦横比の枠を、画面に収まる最大サイズで表示する。
+            // 幅の上限は「使える高さ × 縦横比」（スマホ 1:1 は高さ 60vh、それ以上 4:5 は 78vh）
+            width: { xs: "min(92vw, 60vh)", sm: "min(92vw, calc(78vh * 4 / 5))" },
             // 上余白は閉じるボタン（Paper の上に配置）が画面内に収まる分
             mx: 0,
             my: { xs: 8, md: 9 },
@@ -327,14 +332,13 @@ const GalleryGrid: React.FC<Props> = ({ works, initialWorkId = null }) => {
               sx={{
                 position: "relative",
                 width: "100%",
-                // スマホは下のタイトル・リンクが最初から見えるよう画像を低めにする
-                height: { xs: "min(60vh, 1100px)", md: "min(78vh, 1100px)" },
+                aspectRatio: WORK_IMAGE_ASPECT,
                 borderRadius: "10px",
                 overflow: "hidden",
                 border: "1px solid rgba(255,255,255,0.12)",
               }}
             >
-              <WorkImage src={selectedWork.image} alt={selectedWork.title} sizes="92vw" priority />
+              <WorkImage src={selectedWork.image} alt={selectedWork.title} sizes="(max-width: 600px) 92vw, 62vh" priority />
             </Box>
 
             <Box
