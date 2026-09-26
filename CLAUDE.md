@@ -103,7 +103,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 
 | Path | Description |
 |------|-------------|
-| `/` | トップページ (Hero, Catalogue, Features, QuizTeaser, CTA) |
+| `/` | トップページ (Hero, Catalogue, Features, CTA)。サイズ診断の告知（`QuizTeaserSection`）は #326 で非表示（部品は残してある） |
 | `/products` | 商品一覧（`?category=` で絞り込み） |
 | `/products/[id]` | 商品詳細（存在しない・非公開なら404）。紐づいた作品を「この商品を使った展示例」として表示 |
 | `/gallery` | ギャラリー（Work を表示）。各作品に「この展示に使った商品」へのリンク。`?work={id}` でその作品の拡大表示を開く |
