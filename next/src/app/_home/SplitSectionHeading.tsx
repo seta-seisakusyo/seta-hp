@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Box } from "@mui/material";
-import { FONT_DISPLAY } from "@/theme/themeConstants";
+import { FONT_DISPLAY, PHRASE_WRAP_SX } from "@/theme/themeConstants";
 
 interface SplitSectionHeadingProps {
   title: ReactNode;
@@ -27,6 +27,8 @@ export default function SplitSectionHeading({ title, description }: SplitSection
           lineHeight: 1,
           letterSpacing: "-0.035em",
           color: "text.primary",
+          // 単語の途中で改行しない（改行位置は <wbr> で指定できる）
+          ...PHRASE_WRAP_SX,
           "& em": { fontStyle: "normal", color: "primary.main" },
         }}
       >

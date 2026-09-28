@@ -1,6 +1,7 @@
 /** ヘッダー・スマホメニューの主要導線 */
 export const NAV_LINKS = [
   { label: "カタログ", href: "/products" },
+  { label: "特長", href: "/features" },
   { label: "ギャラリー", href: "/gallery" },
   { label: "お問い合わせ", href: "/contact" },
 ] as const;
