@@ -39,7 +39,7 @@ export function toSleeveData(
     discount: sleeve.discount ?? null,
     alternatives: sleeve.alternatives !== undefined
       ? (sleeve.alternatives ?? []).map(itemData)
-      : (kept?.alternatives ?? []),
+      : (kept?.alternatives ?? []).map(itemData),
   };
 }
 
