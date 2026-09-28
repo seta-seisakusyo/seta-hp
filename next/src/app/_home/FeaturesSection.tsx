@@ -34,10 +34,7 @@ const FeaturesSection = () => {
   return (
     <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 6, md: 9 } }}>
       <SectionContainer>
-        <SplitSectionHeading
-          title={<>長く、<em>共に。</em></>}
-          description="飾るカードが映えるために"
-        />
+        <SplitSectionHeading title={<>シンプルだから<wbr /><em>お手頃。</em></>} />
 
         <Box
           sx={{
