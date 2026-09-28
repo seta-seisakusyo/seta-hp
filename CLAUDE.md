@@ -136,7 +136,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 
 - **User**: ユーザー (ADMIN/EDITOR/VIEWER roles, cuid ID)
 - **Product**: 商品 (名前, 価格, カテゴリ, 複数画像 Json, 在庫状況, 公開フラグ, ヒーロー画像フラグ, 外部購入URL: BASE の `purchaseUrl` / Amazon の `amazonUrl`（VARCHAR(512)、amazon.co.jp 等のドメインのみ許可）)
-  - `sleeve`（JSON）: 対応スリーブ（名前・メーカー・寸法・付属枚数・「スリーブなし」選択時の値引き額）。形は `productSleeveSchema`、読み取りは `parseProductSleeve()`。設計ツールからの商品登録で設計のスリーブが送られ（未送信なら変更しない）、HP 管理画面でも編集できる。商品詳細に「対応スリーブ」欄として表示
+  - `sleeve`（JSON）: 対応スリーブ（名前・メーカー・寸法・付属枚数・「スリーブなし」選択時の値引き額）。形は `productSleeveSchema`、読み取りは `parseProductSleeve()`。設計ツールからの商品登録で設計のスリーブが送られ（未送信なら変更しない）、HP 管理画面でも編集できる。商品詳細に「対応スリーブ」欄として表示。`images`（先頭が代表）と、同じ枠に入るほかのスリーブ `alternatives`（名前・メーカー・寸法・画像）も持つ。画像・ほかの対応スリーブは設計ツールから送られ、管理画面では編集しない（保存しても残す）。スリーブの画像も参照中の画像として数えるので、未使用画像の自動削除では消えない（#331）
 - **Work**: ギャラリー作品（`/gallery` に表示）
 - **WorkProduct**: 作品とそれに使った商品の紐づけ（多対多）。管理画面の作品編集で設定し、商品詳細⇔ギャラリーの相互リンクに使う。公開側は双方とも公開中のものだけ表示
 - **News**: お知らせ (日付, タイトル, JSON contents)
@@ -192,7 +192,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 - `/api/review-comments`（`[id]`, `[id]/replies` を含む）: 社内レビューコメントCRUD（レート制限あり）。`NEXT_PUBLIC_ENABLE_COMMENTS=true` 以外では 404
 - `/api/auth/verify-admin`: nginx `auth_request` 用の管理者検証（Designer SSO）。ADMIN なら 200＋身元ヘッダー。`SSO_VERIFY_ENABLED=1` の時のみ有効で、未設定なら常に 403
 - `/api/health`: ヘルスチェック（GET, 常に `{ status: "ok" }`）
-- `/api/integrations/designer/products`: 設計ツールからの商品登録（#322）。`Authorization: Bearer <DESIGNER_API_SECRET>` で認証するサーバー間通信専用で、nginx は外部から通さない（designer-backend が Docker ネットワーク内の `next_app:3000` を直接呼ぶ）
+- `/api/integrations/designer/products`: 設計ツールからの商品登録（#322）。`Authorization: Bearer <DESIGNER_API_SECRET>` で認証するサーバー間通信専用で、nginx は外部から通さない（designer-backend が Docker ネットワーク内の `next_app:3000` を直接呼ぶ）。multipart で `payload`（JSON）・`images`（商品画像）・`sleeve_images`（スリーブ画像）を受け取る。`payload.sleeve` の画像は `file:番号` で `sleeve_images` の何番目かを指し、保存した URL に置き換える（送られていない番号なら 400）。`file:` の指定は管理画面の API では受け付けない
   - POST（multipart: `payload` JSON ＋ `images` ファイル）: `designerDesignId` で照合して作成または更新。新規は必ず非公開、更新では公開状態を変えない。画像を送った時だけ差し替える
   - GET `?designerDesignId=`: 紐づく商品の ID と公開状態
 
