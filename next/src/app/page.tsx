@@ -6,7 +6,7 @@ import { getHomeProductData } from "./_home/getHomeProductData";
 import FeaturesSection from "./_home/FeaturesSection";
 import CTASection from "./_home/CTASection";
 
-// ヒーロー画像の抽選をリクエスト毎に行うため動的レンダリングとする。
+// リクエスト毎にレンダリングする（ヒーロー画像を出していた頃はリクエスト毎に抽選していた）。
 // 表示データ自体は unstable_cache（products タグ）でキャッシュ済みのため、DBアクセスは発生しない。
 // ※ CIビルド時はDBに到達できないため、静的生成（ISR）にはしない。
 export const dynamic = "force-dynamic";
@@ -21,15 +21,12 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const { catalogueProducts, heroImages } = await getHomeProductData();
-  const heroImage =
-    heroImages.length > 0
-      ? heroImages[Math.floor(Math.random() * heroImages.length)]
-      : null;
+  const { catalogueProducts } = await getHomeProductData();
 
   return (
     <Box sx={{ bgcolor: "#FFFFFF" }}>
-      <HeroSection heroImage={heroImage} />
+      {/* ヒーロー右側の画像は #329 で非表示。戻すときは heroImages から抽選して heroImage に渡す */}
+      <HeroSection />
       <CatalogueSection products={catalogueProducts} />
       <FeaturesSection />
       {/* サイズ診断（QuizTeaserSection）は #326 で非表示。診断機能の公開時に戻す */}

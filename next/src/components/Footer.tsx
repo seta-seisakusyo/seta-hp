@@ -16,6 +16,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Catalogue / 品目",
     links: [
       { label: "商品一覧", href: "/products" },
+      { label: "製品の特長", href: "/features" },
       ...PRODUCT_CATEGORIES.map((category) => ({
         label: category.label,
         href: `/products?category=${category.value}`,

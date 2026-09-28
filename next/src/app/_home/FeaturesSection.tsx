@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 import SectionContainer from "@/components/SectionContainer";
 import { FONT_DISPLAY } from "@/theme/themeConstants";
 import SplitSectionHeading from "./SplitSectionHeading";
+import PillLink from "@/components/PillLink";
 
 const FEATURES = [
   {
@@ -34,10 +35,7 @@ const FeaturesSection = () => {
   return (
     <Box component="section" sx={{ bgcolor: "background.alt", py: { xs: 6, md: 9 } }}>
       <SectionContainer>
-        <SplitSectionHeading
-          title={<>長く、<em>共に。</em></>}
-          description="飾るカードが映えるために"
-        />
+        <SplitSectionHeading title={<>シンプルだから<wbr /><em>お手頃。</em></>} />
 
         <Box
           sx={{
@@ -91,6 +89,10 @@ const FeaturesSection = () => {
               </Box>
             </Box>
           ))}
+        </Box>
+
+        <Box sx={{ mt: { xs: 3, md: 4 } }}>
+          <PillLink href="/features" showArrow compact>特長をくわしく見る</PillLink>
         </Box>
       </SectionContainer>
     </Box>
