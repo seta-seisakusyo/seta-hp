@@ -24,10 +24,13 @@ import { PUT as updateProduct, DELETE as deleteProduct } from "@/app/api/product
 import { PUT as updateWork, DELETE as deleteWork } from "@/app/api/works/route";
 
 const resources = [
+  // 商品は対応スリーブの画像も後片付けの対象なので、削除時に sleeve も読む。
   { name: "商品", update: updateProduct, remove: deleteProduct, model: mocks.product,
-    field: "images", old: ["/uploads/old.png"], clear: null, revalidate: mocks.revalidateProducts },
+    field: "images", old: ["/uploads/old.png"], clear: null, revalidate: mocks.revalidateProducts,
+    deleteSelect: { images: true, sleeve: true } },
   { name: "制作事例", update: updateWork, remove: deleteWork, model: mocks.work,
-    field: "image", old: "/uploads/old.png", clear: "", revalidate: mocks.revalidateWorks },
+    field: "image", old: "/uploads/old.png", clear: "", revalidate: mocks.revalidateWorks,
+    deleteSelect: { image: true } },
 ];
 const request = (method: string, body: unknown) => new NextRequest("http://localhost/api/resource", {
   method, body: JSON.stringify(body),
@@ -77,7 +80,7 @@ for (const resource of resources) {
     it("削除結果の画像を使い、存在確認の別クエリを実行しない", async () => {
       const response = await resource.remove(request("DELETE", { id: 1 }));
       expect(response.status).toBe(200);
-      expect(resource.model.delete).toHaveBeenCalledWith({ where: { id: 1 }, select: { [resource.field]: true } });
+      expect(resource.model.delete).toHaveBeenCalledWith({ where: { id: 1 }, select: resource.deleteSelect });
       expect(resource.model.findUnique).not.toHaveBeenCalled();
       expect(mocks.cleanup).toHaveBeenCalledWith(expect.anything(), ["/uploads/old.png"]);
       expect(resource.revalidate).toHaveBeenCalledOnce();

@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  product: { create: vi.fn(), update: vi.fn() },
+  product: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
   work: { create: vi.fn(), update: vi.fn() },
   news: { create: vi.fn(), update: vi.fn() },
 }));
@@ -59,10 +59,17 @@ it("対応スリーブを保存し、null で登録を消せる", async () => {
   const sleeve = { name: "フルプロテクトスリーブ", maker: "", widthMm: 71, heightMm: 96, thicknessMm: 3, count: 8, discount: 880 };
   expect((await createProduct(request({ ...resources[0].base, name: "商品", sleeve }))).status).toBe(200);
   expect(mocks.product.create).toHaveBeenCalledWith(expect.objectContaining({
-    data: expect.objectContaining({ sleeve: { ...sleeve, maker: null } }),
+    data: expect.objectContaining({ sleeve: { ...sleeve, maker: null, images: [], alternatives: [] } }),
   }));
+  // スリーブを変える更新は、旧スリーブ画像の後片付けのため旧値を読む。
+  mocks.product.findUnique.mockResolvedValue({ images: null, sleeve: null });
   expect((await updateProduct(request({ id: 1, sleeve: null }))).status).toBe(200);
   expect(mocks.product.update.mock.calls[0][0].data.sleeve).toBe(Prisma.JsonNull);
+});
+it("管理画面からは未保存の画像(file:番号)を指すスリーブを受け付けない", async () => {
+  const response = await updateProduct(request({ id: 1, sleeve: { name: "S", images: ["file:0"] } }));
+  expect(response.status).toBe(400);
+  expect(mocks.product.update).not.toHaveBeenCalled();
 });
 it("対応スリーブの名前がない・値引き額が負の値は DB 到達前に400にする", async () => {
   expect((await updateProduct(request({ id: 1, sleeve: { name: "" } }))).status).toBe(400);

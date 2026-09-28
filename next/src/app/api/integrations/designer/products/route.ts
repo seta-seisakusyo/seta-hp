@@ -6,10 +6,20 @@ import { handleApiError } from "@/lib/api-utils";
 import { revalidateProductPages } from "@/lib/cache-tags";
 import { DESIGNER_PRODUCT_MAX_IMAGES, verifyDesignerRequest } from "@/lib/designer-integration";
 import { parsePositiveId } from "@/lib/parse-id";
-import { toSleeveData } from "@/lib/product-sleeve";
+import {
+  resolveSleeveImageRefs,
+  SleeveImageRefError,
+  sleeveImageRefIndexes,
+  toSleeveData,
+} from "@/lib/product-sleeve";
 import { collectImageUrls, deleteUnusedUploadedFiles } from "@/lib/uploaded-files";
 import { removeSavedUploads, saveUploadedImage } from "@/lib/upload-storage";
-import { DesignerProductSchema, type DesignerProductInput } from "@/lib/validation";
+import {
+  DesignerProductSchema,
+  SLEEVE_MAX_ALTERNATIVES,
+  SLEEVE_MAX_IMAGES,
+  type DesignerProductInput,
+} from "@/lib/validation";
 
 // 設計ツール（display_design）からの商品登録。
 // サーバー間通信専用: 同じ Docker ネットワークから next_app:3000 を直接呼ぶ。
@@ -42,7 +52,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-type ParsedRequest = { input: DesignerProductInput; files: File[] };
+type ParsedRequest = { input: DesignerProductInput; files: File[]; sleeveFiles: File[] };
+
+/** 対応スリーブの画像の上限(代表とほかの対応スリーブの合計。スキーマで指定できる最大数に合わせる)。 */
+const DESIGNER_SLEEVE_MAX_IMAGES = SLEEVE_MAX_IMAGES * (SLEEVE_MAX_ALTERNATIVES + 1);
 
 async function parseRequest(req: NextRequest): Promise<ParsedRequest | NextResponse> {
   let form: FormData;
@@ -64,7 +77,16 @@ async function parseRequest(req: NextRequest): Promise<ParsedRequest | NextRespo
   if (files.length > DESIGNER_PRODUCT_MAX_IMAGES) {
     return badRequestResponse(`画像は${DESIGNER_PRODUCT_MAX_IMAGES}枚までです`);
   }
-  return { input: parsed.data, files };
+  // 対応スリーブの画像。payload.sleeve の images が "file:番号" でこの並びを指す。
+  const sleeveFiles = form.getAll("sleeve_images").filter((item): item is File => item instanceof File);
+  if (sleeveFiles.length > DESIGNER_SLEEVE_MAX_IMAGES) {
+    return badRequestResponse(`スリーブの画像は${DESIGNER_SLEEVE_MAX_IMAGES}枚までです`);
+  }
+  const referenced = sleeveImageRefIndexes(parsed.data.sleeve);
+  if (referenced.some((index) => index >= sleeveFiles.length)) {
+    return badRequestResponse("スリーブの画像の指定が送られた画像と合いません");
+  }
+  return { input: parsed.data, files, sleeveFiles };
 }
 
 /**
@@ -79,20 +101,36 @@ export async function POST(req: NextRequest) {
 
   const request = await parseRequest(req);
   if (request instanceof NextResponse) return request;
-  const { input, files } = request;
+  const { input, files, sleeveFiles } = request;
 
   const savedUrls: string[] = [];
+  const productImageUrls: string[] = [];
+  // 添字は sleeve_images の何番目か。どこからも指されていない画像は保存しない（参照されず残るため）。
+  const sleeveImageUrls: string[] = [];
+  const referenced = new Set(sleeveImageRefIndexes(input.sleeve));
   try {
-    for (const file of files) {
+    for (const [file, store] of [
+      ...files.map((file) => [file, (url: string) => productImageUrls.push(url)] as const),
+      ...sleeveFiles.flatMap((file, index) =>
+        referenced.has(index) ? [[file, (url: string) => { sleeveImageUrls[index] = url; }] as const] : []
+      ),
+    ]) {
       const saved = await saveUploadedImage(file);
       if ("error" in saved) {
         await removeSavedUploads(savedUrls);
         return badRequestResponse(`${file.name || "画像"}: ${saved.error}`);
       }
       savedUrls.push(saved.url);
+      store(saved.url);
     }
+    // "file:番号" を、いま保存したスリーブ画像の URL に置き換える。
+    const sleeve = input.sleeve ? resolveSleeveImageRefs(input.sleeve, sleeveImageUrls) : input.sleeve;
 
     const prisma = getPrismaClient();
+    const existing = await prisma.product.findUnique({
+      where: { designerDesignId: input.designerDesignId },
+      select: { id: true, images: true, sleeve: true },
+    });
     const data = {
       name: input.name,
       description: input.description,
@@ -105,20 +143,17 @@ export async function POST(req: NextRequest) {
       metaDescription: input.metaDescription ?? null,
       designerUrl: input.designerUrl ?? null,
       // 未送信なら変えない（HP 管理画面で入れた値を残す）
-      sleeve: toSleeveData(input.sleeve),
+      sleeve: toSleeveData(sleeve, existing?.sleeve),
     };
-    const existing = await prisma.product.findUnique({
-      where: { designerDesignId: input.designerDesignId },
-      select: { id: true, images: true },
-    });
 
     if (existing) {
       const updated = await prisma.product.update({
         where: { id: existing.id },
-        data: { ...data, ...(savedUrls.length > 0 ? { images: savedUrls } : {}) },
+        data: { ...data, ...(productImageUrls.length > 0 ? { images: productImageUrls } : {}) },
         select: productSummary,
       });
-      if (savedUrls.length > 0) {
+      // 差し替えで使われなくなった旧画像(商品画像・スリーブ画像)を消す。
+      if (productImageUrls.length > 0 || input.sleeve !== undefined) {
         await deleteUnusedUploadedFiles(prisma, collectImageUrls(existing));
       }
       revalidateProductPages();
@@ -129,7 +164,7 @@ export async function POST(req: NextRequest) {
       data: {
         ...data,
         designerDesignId: input.designerDesignId,
-        images: savedUrls.length > 0 ? savedUrls : Prisma.JsonNull,
+        images: productImageUrls.length > 0 ? productImageUrls : Prisma.JsonNull,
         isPublished: false,
         isHeroImage: false,
       },
@@ -140,6 +175,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     // DB に書けなかった画像は誰からも参照されないので、その場で消す。
     await removeSavedUploads(savedUrls);
+    if (error instanceof SleeveImageRefError) return badRequestResponse(error.message);
     return handleApiError(error, {
       log: "設計連携の商品登録エラー",
       message: "商品の登録に失敗しました",

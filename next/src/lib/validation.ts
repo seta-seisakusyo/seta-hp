@@ -181,11 +181,28 @@ const sleeveMmSchema = z
   .positive({ message: "スリーブの寸法は0より大きい値にしてください" })
   .max(1000, { message: "スリーブの寸法は1000mm以下にしてください" });
 
+/** スリーブ1種類あたりの画像の上限と、ほかの対応スリーブの上限。 */
+export const SLEEVE_MAX_IMAGES = 6;
+export const SLEEVE_MAX_ALTERNATIVES = 10;
+
 /**
- * 対応スリーブ。商品詳細の「対応スリーブ」欄に表示する。
- * discount は、お客様がスリーブをお持ちで「スリーブなし」を選んだ場合の値引き額（円）。
+ * スリーブの画像。保存済みの /uploads/... か、設計ツール連携で同じリクエストの
+ * sleeve_images の何番目かを指す "file:番号"(ルートで保存して URL に置き換える)。
  */
-export const productSleeveSchema = z.object({
+const sleeveImageSchema = z
+  .string()
+  .max(VARCHAR_MAX, { message: "スリーブの画像の指定が長すぎます" })
+  .refine((value) => /^\/uploads\/[^/\\?#]+$/.test(value) || /^file:\d{1,3}$/.test(value), {
+    message: "スリーブの画像の指定が正しくありません",
+  });
+const sleeveImagesSchema = z
+  .array(sleeveImageSchema)
+  .max(SLEEVE_MAX_IMAGES, { message: `スリーブの画像は1種類あたり${SLEEVE_MAX_IMAGES}枚までです` })
+  .optional()
+  .nullable();
+
+/** スリーブ1種類(名前・メーカー・寸法・画像)。 */
+const productSleeveItemSchema = z.object({
   name: storedText("対応スリーブの名前は必須です", `対応スリーブの名前は${VARCHAR_MAX}文字以内で入力してください`),
   maker: z
     .string()
@@ -197,6 +214,16 @@ export const productSleeveSchema = z.object({
   widthMm: sleeveMmSchema.optional().nullable(),
   heightMm: sleeveMmSchema.optional().nullable(),
   thicknessMm: sleeveMmSchema.optional().nullable(),
+  images: sleeveImagesSchema,
+});
+export type ProductSleeveItemInput = z.infer<typeof productSleeveItemSchema>;
+
+/**
+ * 対応スリーブ。商品詳細の「対応スリーブ」欄に表示する。
+ * 上の項目が代表スリーブ(付属するもの)。alternatives は同じ枠に入るほかのスリーブ。
+ * discount は、お客様がスリーブをお持ちで「スリーブなし」を選んだ場合の値引き額（円）。
+ */
+export const productSleeveSchema = productSleeveItemSchema.extend({
   count: z
     .number({ invalid_type_error: "スリーブの枚数は整数で指定してください" })
     .int({ message: "スリーブの枚数は整数で指定してください" })
@@ -209,6 +236,11 @@ export const productSleeveSchema = z.object({
     .int({ message: "値引き額は整数で指定してください" })
     .min(0, { message: "値引き額は0以上にしてください" })
     .max(DATABASE_INT_MAX, { message: "値引き額が大きすぎます" })
+    .optional()
+    .nullable(),
+  alternatives: z
+    .array(productSleeveItemSchema)
+    .max(SLEEVE_MAX_ALTERNATIVES, { message: `ほかの対応スリーブは${SLEEVE_MAX_ALTERNATIVES}種類までです` })
     .optional()
     .nullable(),
 });
