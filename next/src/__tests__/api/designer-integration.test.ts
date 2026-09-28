@@ -33,11 +33,17 @@ const payload = {
   metaDescription: "MLBカード16枚用のアクリルディスプレイ。",
 };
 
-function post(body: unknown, { secret = SECRET, images = 1 }: { secret?: string | null; images?: number } = {}) {
+function post(
+  body: unknown,
+  { secret = SECRET, images = 1, sleeveImages = 0 }: { secret?: string | null; images?: number; sleeveImages?: number } = {},
+) {
   const form = new FormData();
   form.set("payload", typeof body === "string" ? body : JSON.stringify(body));
   for (let index = 0; index < images; index += 1) {
     form.append("images", new File([new Uint8Array([1])], `image-${index}.webp`, { type: "image/webp" }));
+  }
+  for (let index = 0; index < sleeveImages; index += 1) {
+    form.append("sleeve_images", new File([new Uint8Array([2])], `sleeve-${index}.webp`, { type: "image/webp" }));
   }
   const headers: Record<string, string> = {};
   if (secret !== null) headers.authorization = `Bearer ${secret}`;
@@ -176,7 +182,58 @@ describe("設計ツール連携: 対応スリーブ", () => {
   it("設計のスリーブと値引き額を商品に保存する", async () => {
     const response = await POST(post({ ...payload, sleeve }));
     expect(response.status).toBe(201);
-    expect(mocks.product.create.mock.calls[0][0].data.sleeve).toEqual(sleeve);
+    expect(mocks.product.create.mock.calls[0][0].data.sleeve).toEqual({ ...sleeve, images: [], alternatives: [] });
+  });
+
+  it("スリーブの画像を保存して、file:番号 を URL に置き換える", async () => {
+    const withImages = {
+      ...sleeve,
+      images: ["file:0"],
+      alternatives: [{ name: "KMC ハイパーマット", maker: "KMC", widthMm: 66, heightMm: 92, images: ["file:1"] }],
+    };
+    const response = await POST(post({ ...payload, sleeve: withImages }, { images: 1, sleeveImages: 2 }));
+    expect(response.status).toBe(201);
+    const data = mocks.product.create.mock.calls[0][0].data;
+    // 商品画像1枚(new-1)の次に、スリーブ画像2枚(new-2, new-3)を保存する。
+    expect(data.images).toEqual(["/uploads/new-1.webp"]);
+    expect(data.sleeve.images).toEqual(["/uploads/new-2.webp"]);
+    expect(data.sleeve.alternatives[0].images).toEqual(["/uploads/new-3.webp"]);
+    expect(data.sleeve.alternatives[0].thicknessMm).toBeNull();
+  });
+
+  it("どこからも指されていないスリーブ画像は保存しない", async () => {
+    const response = await POST(post({ ...payload, sleeve: { ...sleeve, images: ["file:1"] } }, { images: 0, sleeveImages: 3 }));
+    expect(response.status).toBe(201);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save.mock.calls[0][0].name).toBe("sleeve-1.webp");
+    expect(mocks.product.create.mock.calls[0][0].data.sleeve.images).toEqual(["/uploads/new-1.webp"]);
+  });
+
+  it("スキーマで指定できる数(6枚 × 11種類)までのスリーブ画像は受け付ける", async () => {
+    const item = (name: string, from: number) => ({ name, images: [0, 1, 2, 3, 4, 5].map((i) => `file:${from + i}`) });
+    const full = {
+      ...item("代表", 0),
+      alternatives: Array.from({ length: 10 }, (_, alt) => item(`対応${alt}`, (alt + 1) * 6)),
+    };
+    const response = await POST(post({ ...payload, sleeve: full }, { images: 0, sleeveImages: 66 }));
+    expect(response.status).toBe(201);
+    expect(mocks.save).toHaveBeenCalledTimes(66);
+  });
+
+  it("送られていない画像を指すスリーブは 400 で、何も保存しない", async () => {
+    const response = await POST(post({ ...payload, sleeve: { ...sleeve, images: ["file:2"] } }, { sleeveImages: 1 }));
+    expect(response.status).toBe(400);
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(mocks.product.create).not.toHaveBeenCalled();
+  });
+
+  it("スリーブを送り直したら、使われなくなった旧スリーブ画像を後片付けに渡す", async () => {
+    mocks.product.findUnique.mockResolvedValue({
+      id: 40, images: ["/uploads/p.webp"], sleeve: { name: "旧", images: ["/uploads/old-sleeve.webp"] },
+    });
+    await POST(post({ ...payload, sleeve: { ...sleeve, images: ["file:0"] } }, { images: 0, sleeveImages: 1 }));
+    expect(mocks.cleanup).toHaveBeenCalledWith(expect.anything(), ["/uploads/p.webp", "/uploads/old-sleeve.webp"]);
+    expect(mocks.product.update.mock.calls[0][0].data).not.toHaveProperty("images");
   });
 
   it("スリーブを送らない更新では、HP で入れた対応スリーブを変えない", async () => {

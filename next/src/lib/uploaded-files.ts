@@ -2,10 +2,13 @@ import type { PrismaClient } from "@prisma/client";
 import { unlink } from "fs/promises";
 import path from "path";
 import { normalizeImageUrl } from "@/lib/images";
+import { collectSleeveImageUrls } from "@/lib/types/product";
 
 type ImageRecord = {
   image?: string | null;
   images?: unknown;
+  /** Product.sleeve（対応スリーブの画像も参照として数える） */
+  sleeve?: unknown;
 };
 
 const UPLOAD_PATH_PREFIX = "/uploads/";
@@ -38,6 +41,7 @@ export function collectImageUrls(record: ImageRecord): string[] {
       if (typeof image === "string") urls.add(image);
     }
   }
+  for (const image of collectSleeveImageUrls(record.sleeve)) urls.add(image);
   return [...urls];
 }
 
@@ -52,7 +56,7 @@ function collectUploadFileNames(urls: string[]): Set<string> {
 
 async function getReferencedUploadFileNames(prisma: PrismaClient): Promise<Set<string>> {
   const [products, works] = await Promise.all([
-    prisma.product.findMany({ select: { images: true } }),
+    prisma.product.findMany({ select: { images: true, sleeve: true } }),
     prisma.work.findMany({ select: { image: true } }),
   ]);
   return collectUploadFileNames([...products, ...works].flatMap(collectImageUrls));

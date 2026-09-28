@@ -1,7 +1,7 @@
 "use client";
 
-import { Box, TextField, Typography } from "@mui/material";
-import type { ProductSleeve } from "@/lib/types/product";
+import { Box, Button, TextField, Typography } from "@mui/material";
+import type { ProductSleeve, ProductSleeveItem } from "@/lib/types/product";
 
 /** 対応スリーブの入力値（テキスト欄のため文字列で持つ） */
 export interface SleeveForm {
@@ -12,6 +12,12 @@ export interface SleeveForm {
   thicknessMm: string;
   count: string;
   discount: string;
+  /**
+   * 設計ツールから登録した画像とほかの対応スリーブ。この画面では編集せず、保存時にそのまま送る
+   * (管理画面で保存しても消えないように)。
+   */
+  images: string[];
+  alternatives: ProductSleeveItem[];
 }
 
 export const emptySleeveForm = (): SleeveForm => ({
@@ -22,6 +28,8 @@ export const emptySleeveForm = (): SleeveForm => ({
   thicknessMm: "",
   count: "",
   discount: "",
+  images: [],
+  alternatives: [],
 });
 
 const text = (value: number | string | null) => (value === null ? "" : String(value));
@@ -36,6 +44,8 @@ export const toSleeveForm = (sleeve: ProductSleeve | null): SleeveForm =>
         thicknessMm: text(sleeve.thicknessMm),
         count: text(sleeve.count),
         discount: text(sleeve.discount),
+        images: sleeve.images,
+        alternatives: sleeve.alternatives,
       }
     : emptySleeveForm();
 
@@ -59,6 +69,8 @@ export const toSleevePayload = (form: SleeveForm) =>
         thicknessMm: numberOrNull(form.thicknessMm),
         count: numberOrNull(form.count),
         discount: numberOrNull(form.discount),
+        images: form.images,
+        alternatives: form.alternatives,
       }
     : null;
 
@@ -97,9 +109,47 @@ export default function ProductSleeveFields({ value, onChange }: Props) {
           {...field("discount")}
         />
       </Box>
+      {(value.images.length > 0 || value.alternatives.length > 0) && (
+        <Box sx={{ mt: 2, p: 1.5, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+            設計ツールから登録した画像とほかの対応スリーブ（この画面では編集せず、保存してもそのまま残ります）
+          </Typography>
+          {value.images.length > 0 && <SleeveThumbs images={value.images} />}
+          {value.alternatives.map((alt, altIndex) => (
+            <Box key={`${altIndex}-${alt.name}`} sx={{ mt: 1 }}>
+              <Typography variant="body2">ほかの対応スリーブ: {alt.name}{alt.maker ? `（${alt.maker}）` : ""}</Typography>
+              {alt.images.length > 0 && <SleeveThumbs images={alt.images} />}
+            </Box>
+          ))}
+          <Button
+            size="small"
+            color="warning"
+            sx={{ mt: 1 }}
+            onClick={() => onChange({ ...value, images: [], alternatives: [] })}
+          >
+            画像とほかの対応スリーブを外す
+          </Button>
+        </Box>
+      )}
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
         スリーブ名を空にすると、商品ページの「対応スリーブ」欄は表示されません
       </Typography>
+    </Box>
+  );
+}
+
+function SleeveThumbs({ images }: { images: string[] }) {
+  return (
+    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+      {images.map((src, index) => (
+        <Box
+          key={`${index}-${src}`}
+          component="img"
+          src={src}
+          alt=""
+          sx={{ width: 56, height: 56, objectFit: "contain", border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "#fff" }}
+        />
+      ))}
     </Box>
   );
 }
