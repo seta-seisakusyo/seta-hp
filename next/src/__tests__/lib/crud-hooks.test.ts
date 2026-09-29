@@ -9,7 +9,12 @@ vi.mock("react", () => ({
   useReducer: (...args: Parameters<ReturnType<typeof createHookRunner>["react"]["useReducer"]>) => state.runner!.react.useReducer(...args),
   useEffect: (...args: Parameters<ReturnType<typeof createHookRunner>["react"]["useEffect"]>) => state.runner!.react.useEffect(...args),
 }));
-vi.mock("@/lib/api-client", () => ({ apiJson: state.apiJson, isAbortError: (error: Error) => error.name === "AbortError" }));
+vi.mock("@/lib/api-client", () => ({
+  apiJson: state.apiJson,
+  isAbortError: (error: Error) => error.name === "AbortError",
+  isRateLimitedError: (error: { status?: number }) => error?.status === 429,
+  RATE_LIMITED_MESSAGE: "アクセスが集中しています。少し待ってからお試しください。",
+}));
 import { useResourceEditor } from "@/lib/hooks/useResourceEditor";
 import { useResourceDelete } from "@/lib/hooks/useResourceDelete";
 import { useCrudResource } from "@/lib/hooks/useCrudResource";
@@ -65,4 +70,12 @@ it("2ページ目から新規保存した後の再取得失敗にも保存成功
   state.apiJson.mockResolvedValueOnce({ success: true }).mockRejectedValueOnce(new Error("503"));
   expect(await list.save({ name: "saved" })).toBe(true); render(); await settle();
   expect(render().error).toContain("商品を保存しました"); log.mockRestore();
+});
+it("一覧の取得がレート制限（429）なら、理由の分かる案内を出す", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  state.apiJson.mockRejectedValueOnce(Object.assign(new Error("429"), { status: 429 }));
+  const render = () => state.runner!.render(() => useCrudResource({ endpoint: "/products", listKey: "products", label: "商品" }));
+  render(); await settle(); const list = render();
+  expect(list.error).toBe("商品一覧を取得できませんでした。アクセスが集中しています。少し待ってからお試しください。");
+  log.mockRestore();
 });

@@ -54,7 +54,8 @@ function collectUploadFileNames(urls: string[]): Set<string> {
   return names;
 }
 
-async function getReferencedUploadFileNames(prisma: PrismaClient): Promise<Set<string>> {
+/** 商品（画像・対応スリーブの画像）と作品から参照されているアップロードのファイル名。 */
+export async function getReferencedUploadFileNames(prisma: PrismaClient): Promise<Set<string>> {
   const [products, works] = await Promise.all([
     prisma.product.findMany({ select: { images: true, sleeve: true } }),
     prisma.work.findMany({ select: { image: true } }),

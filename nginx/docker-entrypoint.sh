@@ -41,6 +41,10 @@ location /uploads/ {
     alias /var/www/uploads/;
     expires 30d;
     add_header X-Content-Type-Options "nosniff" always;
+    # 画像の回収処理の実行記録（.upload-sweep.json）など、ドットファイルは配信しない（#338）
+    location ~ /\. {
+        return 404;
+    }
 }
 
 location /_next/static/ {
@@ -68,10 +72,29 @@ else
     echo "ADMIN_ALLOWED_IPS is not set. Admin area is NOT IP-restricted."
 fi
 
+# --- 管理IPの判定（#338）: 管理IPなら $admin_client を 1 にし、管理画面の読み取りをレート制限から外す ---
+# 未設定なら誰も 1 にならず、従来どおり全員が制限の対象になる。geo は http コンテキストで include する。
+ADMIN_CLIENT_CONF=/etc/nginx/conf.d/admin_client.inc
+{
+    echo "# generated from ADMIN_ALLOWED_IPS"
+    echo 'geo $admin_client {'
+    echo "    default 0;"
+    for ip in ${ADMIN_ALLOWED_IPS:-}; do
+        echo "    $ip 1;"
+    done
+    echo "}"
+} > "$ADMIN_CLIENT_CONF"
+
 # SSL証明書が存在する場合、HTTPS設定を追加
 if [ -f "$CERT_PATH" ]; then
     echo "SSL certificate found. Enabling HTTPS..."
     cat >> /etc/nginx/conf.d/default.conf << EOFCONF
+
+# レート制限の超過は 429 で返す（既定の 503 だと障害と区別できず、管理画面にも理由が出ない。#338）。
+limit_req_status 429;
+
+# 管理IPの判定（\$admin_client。ADMIN_ALLOWED_IPS から生成した geo）
+include /etc/nginx/conf.d/admin_client.inc;
 
 # レート制限ゾーン定義
 limit_req_zone \$binary_remote_addr zone=general:10m rate=10r/s;
@@ -83,11 +106,13 @@ limit_req_zone \$binary_remote_addr zone=upload:10m rate=120r/m;
 # 読み取り枠(30r/m)を管理画面の保存・再取得と取り合うと、数件登録しただけで 503 になり
 # 管理画面に「リクエストに失敗しました」と出ていた。
 # map で該当しないメソッドのキーを空にすると nginx はそのゾーンでは数えない。
-map \$request_method \$api_read_key {
-    default "";
-    GET     \$binary_remote_addr;
-    HEAD    \$binary_remote_addr;
-    OPTIONS \$binary_remote_addr;
+# さらに管理IPからの読み取りは数えない（#338）。保存後の一覧再取得が公開向けの 30r/m を
+# 使い切り、連続操作や複数人の利用で取得に失敗していた。管理IP以外は従来どおり。
+map "\$admin_client:\$request_method" \$api_read_key {
+    default     "";
+    "0:GET"     \$binary_remote_addr;
+    "0:HEAD"    \$binary_remote_addr;
+    "0:OPTIONS" \$binary_remote_addr;
 }
 map \$request_method \$api_write_key {
     default \$binary_remote_addr;
@@ -97,6 +122,14 @@ map \$request_method \$api_write_key {
 }
 limit_req_zone \$api_read_key zone=api_read:10m rate=30r/m;
 limit_req_zone \$api_write_key zone=api_write:10m rate=120r/m;
+# /api/auth/session と /api/email 用（#338）。管理IPの読み取り（GET/HEAD）だけ数えない。
+# 問い合わせ送信（POST）は管理IPからでも数える。ログイン・登録は従来の api 枠のまま。
+map "\$admin_client:\$request_method" \$api_shared_key {
+    default  \$binary_remote_addr;
+    "1:GET"  "";
+    "1:HEAD" "";
+}
+limit_req_zone \$api_shared_key zone=api_shared:10m rate=30r/m;
 # designer 用（未認証フラッドが auth_request を過負荷にするのを抑止。対話ツールなので緩め）。
 limit_req_zone \$binary_remote_addr zone=designer:10m rate=15r/s;
 
@@ -191,7 +224,7 @@ server {
     # ※ designer の auth_request(verify-admin) は nginx 内部で next_app へ直接
     #   proxy するためこの制限の影響を受けない。
     location = /api/auth/session {
-        limit_req zone=api burst=10 nodelay;
+        limit_req zone=api_shared burst=10 nodelay;
         proxy_pass http://next_app:3000;
         include /etc/nginx/conf.d/proxy_headers.inc;
     }
@@ -224,7 +257,7 @@ server {
 
     # 問い合わせAPI: POST(フォーム送信)は公開、GET/DELETE(管理)のみIP制限（#248）
     location = /api/email {
-        limit_req zone=api burst=10 nodelay;
+        limit_req zone=api_shared burst=10 nodelay;
         limit_except POST {
             include /etc/nginx/conf.d/admin_allow.inc;
         }
