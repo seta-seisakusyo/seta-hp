@@ -64,7 +64,8 @@ seta-hp/
 ├── docker-compose.override.yml # ローカル開発用（自動読込、port 3001）
 ├── docker-compose.local.yml    # ローカルビルド検証用
 ├── nginx/                      # Nginx設定（テンプレート + entrypoint）
-├── scripts/                    # 運用スクリプト（DBバックアップ・SSL更新・監視・worktree初期化）
+├── scripts/                    # 運用スクリプト（DBバックアップ・SSL更新・監視・logrotate導入・旧イメージ削除・worktree初期化）
+├── logrotate/                  # ホスト側ログのローテーション設定（setup-logrotate.sh が導入）
 ├── certbot/ fail2ban/ logwatch/ # 本番サーバーの証明書・防御・ログ監視設定
 ├── uploads/                    # アップロード画像（本番でコンテナにマウント）
 └── docs/                       # ブランド資料・デザインモック

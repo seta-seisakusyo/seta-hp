@@ -93,6 +93,14 @@ jobs:
       - name: Validate Nginx configuration
         run: bash scripts/test-nginx-config.sh
 
+      - name: Test old image cleanup
+        run: bash scripts/test-cleanup-images.sh
+
+      - name: Validate logrotate configuration
+        run: |
+          sudo apt-get install -y -qq logrotate >/dev/null
+          bash scripts/test-logrotate-setup.sh
+
   build-and-push:
     needs: ci
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
@@ -179,10 +187,14 @@ jobs:
                 exit 1
               fi
             fi
-            for dir in nginx scripts fail2ban logwatch; do
+            for dir in nginx scripts fail2ban logwatch logrotate; do
               rm -rf "${dir}"
             done
             git checkout "${IMAGE_TAG}" -- docker-compose.yml nginx/ scripts/ fail2ban/ logwatch/
+            # logrotate/ は #337 で追加。それより前の版へ戻すデプロイでは存在しないので、ある場合だけ同期する。
+            if git cat-file -e "${IMAGE_TAG}:logrotate" 2>/dev/null; then
+              git checkout "${IMAGE_TAG}" -- logrotate/
+            fi
 
             # レジストリログイン
             echo "${GH_PAT}" | docker login "${REGISTRY}" -u "${GH_USERNAME}" --password-stdin
@@ -268,11 +280,9 @@ jobs:
               sleep 5
             done
 
-            # 古いイメージのクリーンアップ（直近3世代を保持、CreatedAtで時系列ソート）
+            # 古いイメージのクリーンアップ（異なるイメージIDで直近3世代＋現行・直前の版を保持）。
+            # 失敗は警告に出すだけでデプロイは止めない（scripts/cleanup-images.sh）。
             echo "Cleaning up old images..."
-            docker images "${REGISTRY}/${IMAGE}" --format '{{.CreatedAt}}\t{{.Tag}}\t{{.ID}}' \
-              | grep -v '<none>' | grep -v 'latest' \
-              | sort -r | tail -n +4 \
-              | awk -F'\t' '{print $3}' | xargs -r docker rmi 2>/dev/null || true
+            bash scripts/cleanup-images.sh "${REGISTRY}/${IMAGE}" 3 "${IMAGE_TAG}" "${PREV_TAG}"
 
             echo "=== Deployment complete: ${IMAGE_TAG} ==="
