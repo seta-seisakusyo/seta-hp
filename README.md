@@ -469,7 +469,7 @@ Error response from daemon: Get "https://ghcr.io/v2/": denied: denied
 | `scripts/backup-db.sh` | EC / Designer DB バックアップ（14日間保持、DBごとに最低3件） |
 | `scripts/monitor.sh` | EC / Designer のComposeサービス・外部経路・TLS証明書の残日数を監視 |
 | `scripts/setup-monitoring.sh` | 監視環境セットアップ（logrotate の導入を含む） |
-| `scripts/setup-logrotate.sh` | `logrotate/seta-hp` を `/etc/logrotate.d/` へ導入。同じログを対象にした既存設定は、そのログだけなら退避し、ほかのログも含むなら導入せず停止 |
+| `scripts/setup-logrotate.sh` | `logrotate/seta-hp` を `/etc/logrotate.d/` へ導入。同じログを対象にした既存設定は、そのログだけなら退避し、ほかのログも含む（引用符付き・ワイルドカードも判定）なら何も変更せず停止。include を含む設定は退避しない。全件を検査してから動かし、導入後に既存設定を含む全体を検証して、新しいエラーが出たら元に戻す |
 | `scripts/cleanup-images.sh` | デプロイ後の古いアプリイメージ削除（異なるイメージIDで直近3世代＋現行・直前の版を保持） |
 | `scripts/setup-worktree.sh` | git worktree の初期化（開発用。`.env` 等をメイン作業ツリーからコピー） |
 
