@@ -468,7 +468,9 @@ Error response from daemon: Get "https://ghcr.io/v2/": denied: denied
 | `scripts/renew-ssl.sh` | SSL 証明書の更新（1日2回のcronで実行） |
 | `scripts/backup-db.sh` | EC / Designer DB バックアップ（14日間保持、DBごとに最低3件） |
 | `scripts/monitor.sh` | EC / Designer のComposeサービス・外部経路・TLS証明書の残日数を監視 |
-| `scripts/setup-monitoring.sh` | 監視環境セットアップ |
+| `scripts/setup-monitoring.sh` | 監視環境セットアップ（logrotate の導入を含む） |
+| `scripts/setup-logrotate.sh` | `logrotate/seta-hp` を `/etc/logrotate.d/` へ導入。同じログを対象にした既存設定は、そのログだけなら退避し、ほかのログも含むなら導入せず停止 |
+| `scripts/cleanup-images.sh` | デプロイ後の古いアプリイメージ削除（異なるイメージIDで直近3世代＋現行・直前の版を保持） |
 | `scripts/setup-worktree.sh` | git worktree の初期化（開発用。`.env` 等をメイン作業ツリーからコピー） |
 
 ```bash
@@ -477,6 +479,11 @@ Error response from daemon: Get "https://ghcr.io/v2/": denied: denied
 0 4 * * * root bash /home/ubuntu/seta-hp/scripts/backup-db.sh >> /var/log/db-backup.log 2>&1
 17 3,15 * * * root bash /home/ubuntu/seta-hp/scripts/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
 ```
+
+ホストへ直接書かれるログ（Nginx の `/var/log/nginx/*.log` と上記の運用ログ）は、Docker の logging 設定では
+容量を制限できないため `logrotate/seta-hp` で回します（Nginx: 毎日・14世代、運用ログ: 毎週・8週間分）。
+`/etc/logrotate.d/seta-hp` は導入時のコピーなので、`logrotate/seta-hp` を変更したら
+`sudo bash scripts/setup-logrotate.sh` を再実行してください（デプロイは `logrotate/` をサーバーへ同期するだけです）。
 
 SSL更新は1日2回動かします（Let's Encryptが実際に更新するのは残り30日を切った証明書だけ）。
 月1回では1度の失敗がそのまま失効につながるためです。各スクリプトを `bash` 経由で呼ぶのは、

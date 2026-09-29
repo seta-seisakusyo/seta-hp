@@ -154,6 +154,16 @@ chmod 700 "$PROJECT_DIR/backups"
 echo "完了: $PROJECT_DIR/backups"
 
 # ----------------------------------
+# 7. logrotate設定
+# ----------------------------------
+# Nginx（/var/log/nginx）と運用ログ（/var/log/*.log）はホストへ直接書かれるため、
+# Docker の logging 設定では容量を制限できない。同じログを対象にした既存設定があれば
+# 解消してから導入し、解消できない重複があればここで止める。
+echo ""
+echo "7. logrotate設定中..."
+bash "$SCRIPT_DIR/setup-logrotate.sh"
+
+# ----------------------------------
 # 完了メッセージ
 # ----------------------------------
 echo ""
@@ -167,6 +177,7 @@ echo "  - logwatch: 毎朝7:00にログサマリーをメール送信"
 echo "  - monitor.sh: 5分ごとにコンテナ状態チェック"
 echo "  - backup-db.sh: 毎日4:00にDBバックアップ"
 echo "  - renew-ssl.sh: 毎日3:17/15:17にSSL証明書更新（残り30日未満のみ実更新）"
+echo "  - logrotate: Nginxログは毎日・14世代、運用ログは毎週・8週間分（/etc/logrotate.d/seta-hp）"
 echo ""
 echo "fail2ban状態確認:"
 echo "  fail2ban-client status"
