@@ -72,4 +72,17 @@ if grep -Fq 'include /etc/nginx/conf.d/proxy_timeouts.inc;' <<< "$admin_block"; 
   exit 1
 fi
 
+# 管理 API(/api/ 配下と products|works|news)は読み取り枠と書き込み枠を両方持つ（管理画面の 503 対策）。
+site_block="$(awk '/server_name test\.local;/{site=1} site && /server_name designer\.test\.local;/{exit} site{print}' "$CONFIG")"
+write_count="$(grep -Fc 'limit_req zone=api_write burst=30 nodelay;' <<< "$site_block" || true)"
+read_count="$(grep -Fc 'limit_req zone=api_read burst=10 nodelay;' <<< "$site_block" || true)"
+if [ "$write_count" -ne 2 ] || [ "$read_count" -ne 2 ]; then
+  echo "管理APIの読み取り/書き込みレート制限は/api/とproducts|works|newsの2箇所で必要です (read=$read_count write=$write_count)" >&2
+  exit 1
+fi
+if ! grep -Fq 'limit_req_zone $api_write_key zone=api_write:10m rate=120r/m;' "$CONFIG"; then
+  echo "書き込み用レート制限ゾーン(api_write)が定義されていません" >&2
+  exit 1
+fi
+
 echo "Nginx HTTPS config and Designer auth boundary: OK"

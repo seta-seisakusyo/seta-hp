@@ -77,6 +77,26 @@ if [ -f "$CERT_PATH" ]; then
 limit_req_zone \$binary_remote_addr zone=general:10m rate=10r/s;
 limit_req_zone \$binary_remote_addr zone=api:10m rate=30r/m;
 limit_req_zone \$binary_remote_addr zone=upload:10m rate=120r/m;
+
+# 公開 API(products/works/news と /api/ 配下)は、読み取り(GET 等)と書き込み(POST/PUT/DELETE 等)で
+# 枠を分ける。書き込みは admin_allow で管理者 IP に限られた操作なので、公開向けの
+# 読み取り枠(30r/m)を管理画面の保存・再取得と取り合うと、数件登録しただけで 503 になり
+# 管理画面に「リクエストに失敗しました」と出ていた。
+# map で該当しないメソッドのキーを空にすると nginx はそのゾーンでは数えない。
+map \$request_method \$api_read_key {
+    default "";
+    GET     \$binary_remote_addr;
+    HEAD    \$binary_remote_addr;
+    OPTIONS \$binary_remote_addr;
+}
+map \$request_method \$api_write_key {
+    default \$binary_remote_addr;
+    GET     "";
+    HEAD    "";
+    OPTIONS "";
+}
+limit_req_zone \$api_read_key zone=api_read:10m rate=30r/m;
+limit_req_zone \$api_write_key zone=api_write:10m rate=120r/m;
 # designer 用（未認証フラッドが auth_request を過負荷にするのを抑止。対話ツールなので緩め）。
 limit_req_zone \$binary_remote_addr zone=designer:10m rate=15r/s;
 
@@ -157,7 +177,8 @@ server {
     }
 
     location /api/ {
-        limit_req zone=api burst=10 nodelay;
+        limit_req zone=api_read burst=10 nodelay;
+        limit_req zone=api_write burst=30 nodelay;
         proxy_pass http://next_app:3000;
         include /etc/nginx/conf.d/proxy_headers.inc;
 
@@ -192,7 +213,8 @@ server {
 
     # 商品/制作事例/お知らせAPI: GET(公開)以外の書込メソッドのみIP制限（#248）
     location ~ ^/api/(products|works|news)\$ {
-        limit_req zone=api burst=10 nodelay;
+        limit_req zone=api_read burst=10 nodelay;
+        limit_req zone=api_write burst=30 nodelay;
         limit_except GET {
             include /etc/nginx/conf.d/admin_allow.inc;
         }
