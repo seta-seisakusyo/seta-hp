@@ -2,9 +2,14 @@
 # scripts/setup-logrotate.sh が /etc/logrotate.d/seta-hp へ配置する（手で編集しない）。
 # Docker の logging 設定（max-size）はコンテナの標準出力にしか効かないため、
 # ホストへ直接書かれる以下のファイルはここで回す。
+#
+# Ubuntu の /var/log は root:syslog 0775（グループ書き込み可）で、su の指定がないと logrotate は
+# 回さない。Ubuntu は /etc/logrotate.conf の "su root adm" で対応しているが、この設定を単独で
+# 読んでも（setup-logrotate.sh の導入前確認）同じになるよう、各ブロックにも明記する。
 
 # Nginx（nginx_proxy が bind mount の /var/log/nginx へ直接書く。fail2ban・logwatch も参照する）
 /var/log/nginx/*.log {
+    su root adm
     daily
     rotate 14
     compress
@@ -22,6 +27,7 @@
 # 運用ログ（/etc/cron.d/server-monitoring の各ジョブが >> で追記する）
 # 書き込み側がファイルを開き直さないので、コピーしてから元を空にする。
 /var/log/db-backup.log /var/log/monitor.log /var/log/certbot-renew.log {
+    su root adm
     weekly
     rotate 8
     compress
