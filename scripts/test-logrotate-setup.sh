@@ -11,6 +11,8 @@ trap 'rm -rf -- "$TMP_DIR"' EXIT
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
 command -v logrotate >/dev/null || fail "logrotate が見つかりません"
+# 設定の "su root adm" は root 以外だと -d でもユーザーを切り替えられず失敗する（本番も sudo で導入する）
+[ "$(id -u)" -eq 0 ] || fail "root で実行してください（例: sudo bash $0）"
 
 # 0. 設定そのものの構文（-d は実際には回さない）。
 #    logrotate はグループ・他人が書ける設定を無視するので、導入時と同じ 0644 で確かめる。
@@ -22,6 +24,27 @@ grep -q "rotating pattern: /var/log/nginx/\*.log" "$TMP_DIR/syntax.txt" \
 grep -q "rotating pattern: /var/log/db-backup.log /var/log/monitor.log /var/log/certbot-renew.log" "$TMP_DIR/syntax.txt" \
   || fail "運用ログが対象になっていません"
 echo "ok - logrotate/seta-hp の構文"
+
+# 0b. Ubuntu の /var/log と同じく、親ディレクトリがグループ書き込み可（root 以外のグループ）でも
+#     単独の構文確認が通る（#342）。/var/log には触れないので、パスを一時ディレクトリへ置き換えて確かめる。
+LOGDIR="$TMP_DIR/varlog"
+mkdir -p "$LOGDIR/nginx"
+touch "$LOGDIR/nginx/access.log" "$LOGDIR/db-backup.log" "$LOGDIR/monitor.log" "$LOGDIR/certbot-renew.log"
+chgrp adm "$LOGDIR" "$LOGDIR/nginx"
+chmod 0775 "$LOGDIR" "$LOGDIR/nginx"
+[ "$(stat -c %g "$LOGDIR")" -ne 0 ] || fail "テスト用ディレクトリのグループを root 以外にできません"
+sed "s#/var/log/#$LOGDIR/#g" "$PROJECT_DIR/logrotate/seta-hp" > "$TMP_DIR/perm.conf"
+chmod 0644 "$TMP_DIR/perm.conf"
+logrotate -d "$TMP_DIR/perm.conf" > "$TMP_DIR/perm.txt" 2>&1 \
+  || { cat "$TMP_DIR/perm.txt" >&2; fail "グループ書き込み可のディレクトリで構文確認が失敗します"; }
+# su を外すと同じ条件で失敗すること（このテストが本番の状況を再現できていること）も確かめる
+grep -v '^[[:space:]]*su ' "$TMP_DIR/perm.conf" > "$TMP_DIR/perm-nosu.conf"
+chmod 0644 "$TMP_DIR/perm-nosu.conf"
+if logrotate -d "$TMP_DIR/perm-nosu.conf" > "$TMP_DIR/perm-nosu.txt" 2>&1; then
+  fail "su なしでも通ってしまい、グループ書き込み可の状況を再現できていません"
+fi
+grep -q "insecure permissions" "$TMP_DIR/perm-nosu.txt" || { cat "$TMP_DIR/perm-nosu.txt" >&2; fail "想定と違う理由で失敗しています"; }
+echo "ok - 親ディレクトリがグループ書き込み可でも構文確認が通る（su root adm）"
 
 setup() {
   local case_dir="$TMP_DIR/$1"

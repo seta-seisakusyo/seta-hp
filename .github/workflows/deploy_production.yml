@@ -99,7 +99,7 @@ jobs:
       - name: Validate logrotate configuration
         run: |
           sudo apt-get install -y -qq logrotate >/dev/null
-          bash scripts/test-logrotate-setup.sh
+          sudo bash scripts/test-logrotate-setup.sh
 
   build-and-push:
     needs: ci
