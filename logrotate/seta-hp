@@ -1,0 +1,32 @@
+# 飾Love（seta-hp）のホスト側ログのローテーション。
+# scripts/setup-logrotate.sh が /etc/logrotate.d/seta-hp へ配置する（手で編集しない）。
+# Docker の logging 設定（max-size）はコンテナの標準出力にしか効かないため、
+# ホストへ直接書かれる以下のファイルはここで回す。
+
+# Nginx（nginx_proxy が bind mount の /var/log/nginx へ直接書く。fail2ban・logwatch も参照する）
+/var/log/nginx/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+    sharedscripts
+    postrotate
+        # Nginx はコンテナ内で動く。USR1 でログファイルを開き直させる（止まっていれば何もしない）。
+        docker kill --signal=USR1 nginx_proxy >/dev/null 2>&1 || true
+    endscript
+}
+
+# 運用ログ（/etc/cron.d/server-monitoring の各ジョブが >> で追記する）
+# 書き込み側がファイルを開き直さないので、コピーしてから元を空にする。
+/var/log/db-backup.log /var/log/monitor.log /var/log/certbot-renew.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}

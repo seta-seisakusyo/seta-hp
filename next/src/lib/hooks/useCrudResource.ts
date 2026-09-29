@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiJson, isAbortError } from "@/lib/api-client";
+import { apiJson, isAbortError, isRateLimitedError, RATE_LIMITED_MESSAGE } from "@/lib/api-client";
 
 interface UseCrudResourceOptions {
   /** 書き込み先エンドポイント（POST/PUT/DELETE） */
@@ -71,7 +71,11 @@ export function useCrudResource<T extends { id: number }>({
     } catch (error) {
       if (!controller.signal.aborted && !isAbortError(error)) {
         console.error(`${label}一覧の取得に失敗:`, error);
-        setError(`${successMessage ? `${successMessage}。` : ""}${label}一覧の取得に失敗しました。再試行してください。`);
+        const prefix = successMessage ? `${successMessage}。` : "";
+        // レート制限（429）は理由が分かるよう専用の案内にする（#338）
+        setError(isRateLimitedError(error)
+          ? `${prefix}${label}一覧を取得できませんでした。${RATE_LIMITED_MESSAGE}`
+          : `${prefix}${label}一覧の取得に失敗しました。再試行してください。`);
       }
     } finally {
       if (requestControllerRef.current === controller) {
