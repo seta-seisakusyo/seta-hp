@@ -12,14 +12,51 @@ export function isAbortError(error: unknown): boolean {
   );
 }
 
+/** レート制限（429）に当たったときの案内。管理画面の保存・一覧取得で共通に使う。 */
+export const RATE_LIMITED_MESSAGE = "アクセスが集中しています。少し待ってからお試しください。";
+
+/** API が失敗応答を返したときのエラー。状態コードで分岐できるよう保持する。 */
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
+/** レート制限（429）による失敗か。 */
+export function isRateLimitedError(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.status === 429;
+}
+
+/**
+ * 429 の本文から案内文を取り出す。アプリのレート制限は JSON の error を返すのでそれを使い、
+ * Nginx の制限（HTML）など読めない本文なら共通の案内にする。
+ */
+async function readRateLimitMessage(response: Response): Promise<string> {
+  try {
+    const data: unknown = await response.json();
+    if (typeof data === "object" && data !== null && "error" in data && typeof data.error === "string" && data.error) {
+      return data.error;
+    }
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+  }
+  return RATE_LIMITED_MESSAGE;
+}
+
 async function readJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   if (response.ok && response.status === 204) return null as T;
+  // 429 は JSON の解析より先に扱う（Nginx の制限応答は HTML で、解析に失敗すると理由が消える）
+  if (response.status === 429) {
+    throw new ApiRequestError(await readRateLimitMessage(response), 429);
+  }
 
   let data: unknown;
   try {
     data = await response.json();
   } catch (error) {
     if (isAbortError(error)) throw error;
+    if (!response.ok) throw new ApiRequestError(fallbackMessage, response.status);
     throw new Error(fallbackMessage);
   }
 
@@ -27,7 +64,7 @@ async function readJsonResponse<T>(response: Response, fallbackMessage: string):
     const message = typeof data === "object" && data !== null && "error" in data
       ? data.error
       : undefined;
-    throw new Error(typeof message === "string" && message ? message : fallbackMessage);
+    throw new ApiRequestError(typeof message === "string" && message ? message : fallbackMessage, response.status);
   }
 
   return data as T;

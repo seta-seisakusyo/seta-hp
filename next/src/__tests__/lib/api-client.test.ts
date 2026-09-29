@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { apiJson, isAbortError, uploadImage } from "@/lib/api-client";
+import {
+  apiJson,
+  ApiRequestError,
+  isAbortError,
+  isRateLimitedError,
+  RATE_LIMITED_MESSAGE,
+  uploadImage,
+} from "@/lib/api-client";
 
 describe("isAbortError", () => {
   it("AbortErrorだけを意図的なキャンセルとして扱う", () => {
@@ -84,5 +91,33 @@ describe("uploadImage", () => {
   it("アップロードAPIのエラーを伝える", async () => {
     respond(Response.json({ error: "ファイルサイズは5MB以下にしてください" }, { status: 400 }));
     await expect(uploadImage(file)).rejects.toThrow("ファイルサイズは5MB以下にしてください");
+  });
+});
+
+describe("レート制限（429）", () => {
+  it("Nginx の HTML 応答でも JSON を解析する前に判定し、共通の案内を出す", async () => {
+    respond(new Response("<html><h1>429 Too Many Requests</h1></html>", { status: 429 }));
+    const error = await apiJson("/api/products").catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiRequestError);
+    expect(isRateLimitedError(error)).toBe(true);
+    expect((error as Error).message).toBe(RATE_LIMITED_MESSAGE);
+  });
+
+  it("アプリのレート制限は JSON の案内文をそのまま使う", async () => {
+    respond(Response.json({ success: false, error: "送信回数が上限に達しました。" }, { status: 429 }));
+    await expect(apiJson("/api/email", { method: "POST", body: {} })).rejects.toThrow("送信回数が上限に達しました。");
+  });
+
+  it("画像アップロードでも 429 を判定できる", async () => {
+    respond(new Response("<html>429</html>", { status: 429 }));
+    const error = await uploadImage(new File(["x"], "a.png", { type: "image/png" })).catch((e: unknown) => e);
+    expect(isRateLimitedError(error)).toBe(true);
+  });
+
+  it("429 以外の失敗は状態コードを持つが、レート制限とはみなさない", async () => {
+    respond(Response.json({ error: "権限がありません" }, { status: 403 }));
+    const error = await apiJson("/api/news").catch((e: unknown) => e);
+    expect((error as ApiRequestError).status).toBe(403);
+    expect(isRateLimitedError(error)).toBe(false);
   });
 });

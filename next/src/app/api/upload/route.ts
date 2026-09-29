@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { badRequestResponse, internalErrorResponse } from "@/lib/api-response";
 import { isErrorResponse, requireEditor } from "@/lib/api-utils";
 import { saveUploadedImage } from "@/lib/upload-storage";
+import { getPrismaClient } from "@/lib/db";
+import { maybeSweepUnusedUploads } from "@/lib/upload-sweeper";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +21,8 @@ export async function POST(req: NextRequest) {
     if ("error" in saved) {
       return badRequestResponse(saved.error);
     }
+    // 使われていない画像の回収（1日1回）は、応答を返した後に動かす。失敗してもアップロードには影響しない。
+    after(() => maybeSweepUnusedUploads(getPrismaClient()));
     return NextResponse.json({ url: saved.url });
   } catch (error) {
     console.error("アップロードエラー:", error);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Autocomplete, Chip, TextField } from "@mui/material";
-import { apiJson, isAbortError } from "@/lib/api-client";
+import { apiJson, isAbortError, isRateLimitedError, RATE_LIMITED_MESSAGE } from "@/lib/api-client";
 import { WORK_PRODUCTS_MAX } from "@/lib/work-constants";
 
 interface ProductOption {
@@ -41,7 +41,9 @@ export default function WorkProductsField({ value, onChange }: Props) {
       .catch((err) => {
         if (isAbortError(err)) return;
         console.error("商品一覧の取得に失敗:", err);
-        setError("商品一覧を取得できませんでした。使用商品の変更はできません。");
+        setError(isRateLimitedError(err)
+          ? `商品一覧を取得できませんでした。${RATE_LIMITED_MESSAGE}`
+          : "商品一覧を取得できませんでした。使用商品の変更はできません。");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);

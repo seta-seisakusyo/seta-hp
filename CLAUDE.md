@@ -212,6 +212,9 @@ API の認可とJSON検証は `src/lib/api-utils.ts` の `parseEditorJson` / `pa
 ### Rate Limiting
 - 統一されたレート制限 (`src/lib/rate-limit.ts`, 既定はDB共有ストア)
 - プリセット: register, login, loginIp, contact, recaptcha, review, reviewUpdate, xPost
+- Nginx 層（`nginx/docker-entrypoint.sh`）でも IP 単位で制限し、超過は **429** で返す（`limit_req_status 429`）
+  - 管理IP（`ADMIN_ALLOWED_IPS` から生成する `geo $admin_client`）からの読み取り（GET/HEAD）は、`api_read`（`/api/` と products/works/news）と `api_shared`（`/api/auth/session`・`/api/email`）で数えない。ログイン・登録（`api` 枠）と問い合わせ送信（POST）は管理IPでも数える
+  - クライアントは `src/lib/api-client.ts` が 429 を JSON 解析より先に判定し（`ApiRequestError` / `isRateLimitedError`）、「アクセスが集中しています」と案内する
 
 ### Session Types
 - `src/app/types/next-auth.d.ts` でSession/User/JWT型を拡張
@@ -265,6 +268,7 @@ worktree はコード編集・レビュー・`yarn lint` / `yarn test` / `yarn b
 - Docker環境推奨（MySQL依存のため）
 - 認証が必要なページは `/login` 経由でアクセス
 - 画像アップロードは `public/uploads` に保存する。本番ではリポジトリ直下の `uploads/` をコンテナの `/app/public/uploads` にマウントし、`/uploads/` は Nginx が直接配信する
+- 使われていない画像は `/api/upload` の応答後に1日1回回収する（`src/lib/upload-sweeper.ts`）。商品（画像・対応スリーブ）と作品のどこからも参照されず24時間以上たったものだけ消し、参照確認に失敗したら何も消さない。実行記録は `uploads/.upload-sweep.json`（Nginx はドットファイルを配信しない）
 - ブランチ: `main`(本番) → `develop`(開発) → 作業ブランチ `{type}/{issue番号}`（例: `fix/101`, `feature/132`）
 - CI/CD（`.github/workflows/deploy_production.yml`）
   - `develop` 宛の PR: migration の空DB適用・lint・typecheck・test・build・Nginx設定検証
