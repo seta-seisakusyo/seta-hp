@@ -11,7 +11,7 @@ import DarkCtaSection from "@/components/DarkCtaSection";
 export const metadata: Metadata = {
   title: "工房について",
   description:
-    "飾Love は、MLBカードコレクターが一人で運営する富山県高岡市の小さな工房。レーザー加工で、コレクターが本当に欲しいアクリルディスプレイを一つずつ手作りしています。",
+    "飾Love は、MLBカードコレクターが一人で運営する小さな工房。レーザー加工で、コレクターが本当に欲しいアクリルディスプレイを一つずつ手作りしています。",
   robots: { index: false, follow: false },
 };
 

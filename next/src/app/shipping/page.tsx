@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import LegalPageLayout from "../_legal/LegalPageLayout";
 
 export const metadata: Metadata = {
@@ -34,8 +35,8 @@ export default function ShippingPage() {
 
       <h2>お届け日数</h2>
       <p>
-        ご注文確認後、通常 3〜7 営業日以内に発送いたします。
-        受注生産品の場合は、商品ページに記載の日数をご確認ください。
+        商品は受注生産のため、発送日はご注文後にメールでご連絡いたします。
+        お急ぎの場合は、ご注文前に<Link href="/contact">お問い合わせ</Link>ください。
       </p>
 
       <h2>返品・交換</h2>

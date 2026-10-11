@@ -71,8 +71,6 @@ export const metadata: Metadata = {
     "トレカ",
     "ドジャース",
     "ハンドメイド",
-    "富山",
-    "高岡",
   ],
 
   metadataBase: new URL(SITE_URL),
@@ -132,12 +130,6 @@ const jsonLd = {
   description: SITE_DESCRIPTION,
   email: CONTACT_EMAIL,
   sameAs: [X_PROFILE_URL],
-  address: {
-    "@type": "PostalAddress",
-    addressCountry: "JP",
-    addressRegion: "富山県",
-    addressLocality: "高岡市",
-  },
 };
 
 export default function RootLayout({
