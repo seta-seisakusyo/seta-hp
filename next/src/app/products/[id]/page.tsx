@@ -15,6 +15,7 @@ import SectionContainer from "@/components/SectionContainer";
 import DarkCtaSection from "@/components/DarkCtaSection";
 import { getPrimaryProductImage } from "@/lib/types/product";
 import { splitSeoKeywords } from "@/lib/seo-keywords";
+import { DEFAULT_OG_IMAGE } from "@/lib/site-config";
 
 // ISR: ビルド時は生成せず（CIビルドはDB到達不可のため generateStaticParams は空）、
 // 初回アクセス時に生成してキャッシュする。商品の作成・更新・削除時は
@@ -83,6 +84,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   // 検索結果の説明文は専用の metaDescription を優先し、未設定なら商品説明を使う。
   const description = product.metaDescription || product.description;
   const keywords = splitSeoKeywords(product.seoKeywords);
+  const image = getPrimaryProductImage(product.images) ?? DEFAULT_OG_IMAGE;
   return {
     title: product.name,
     description,
@@ -93,7 +95,14 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       title: product.name,
       description,
       url: `/products/${product.id}`,
-      images: [getPrimaryProductImage(product.images) ?? "/og-image.png"],
+      images: [image],
+    },
+    // X は twitter 側が未指定だと layout の既定カードを使うため、商品の内容で上書きする。
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: [image],
     },
   };
 }
