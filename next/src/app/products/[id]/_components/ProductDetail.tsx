@@ -229,8 +229,17 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
               lineHeight: 1.7,
             }}
           >
-            緩衝材入りの梱包と配送保険付き。
-            通常 3〜7 営業日で発送します。
+            受注生産のため、発送日はご注文後にメールでご連絡いたします。
+            <br />
+            お急ぎの場合は
+            <Box
+              component={Link}
+              href="/contact"
+              sx={{ color: "inherit", textDecoration: "underline" }}
+            >
+              お問い合わせ
+            </Box>
+            ください。
           </Box>
 
           {/* CTAs */}

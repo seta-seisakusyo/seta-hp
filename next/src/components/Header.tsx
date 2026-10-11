@@ -75,7 +75,7 @@ export default function Header() {
                     verticalAlign: "middle",
                   }}
                 />
-                <Box component="span" sx={{ lineHeight: 1 }}>かざらぶ</Box>
+                <Box component="span" sx={{ lineHeight: 1 }}>瀬田製作所</Box>
               </Box>
             </Link>
 
