@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const ROWS: LegalInfoRow[] = [
   { label: "サイト名", value: "飾Love(かざらぶ)" },
   { label: "販売業者", value: "瀬田製作所(個人事業所)" },
-  { label: "運営責任者", value: "木村竜次" },
+  { label: "運営責任者", value: "伊藤竜次" },
   { label: "所在地", value: "※ご請求いただいた方にお知らせいたします" },
   { label: "電話番号", value: "※ご請求いただいた方にお知らせいたします" },
   { label: "メールアドレス", value: CONTACT_EMAIL },
@@ -31,7 +31,7 @@ const ROWS: LegalInfoRow[] = [
   {
     label: "商品の引渡時期",
     value:
-      "ご注文確認後、通常3〜7営業日以内に発送\n※受注生産品は商品ページに記載の日数\n※お届け予定日は各販売サイトの購入画面でもご確認いただけます",
+      "受注生産のため、発送日はご注文後にメールでご連絡いたします\n※お急ぎの場合は、ご注文前にお問い合わせください",
   },
   {
     label: "返品・交換について",
