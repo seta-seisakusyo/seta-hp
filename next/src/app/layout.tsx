@@ -9,6 +9,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import type { Metadata } from "next";
 import {
   CONTACT_EMAIL,
+  DEFAULT_OG_IMAGE,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_URL,
@@ -92,7 +93,7 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: "/og-image.png",
+        url: DEFAULT_OG_IMAGE,
         width: 1200,
         height: 630,
         alt: SITE_NAME,
@@ -104,7 +105,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${SITE_NAME} | MLBカード・トレカを美しく飾る`,
     description: SITE_DESCRIPTION,
-    images: ["/og-image.png"],
+    images: [DEFAULT_OG_IMAGE],
   },
 
   robots: {
