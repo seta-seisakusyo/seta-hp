@@ -78,13 +78,13 @@ export const RegistrationSchema = z.object({
 // ---------------------------------------------------------------------------
 
 const priceSchema = z.coerce
-  .number({ invalid_type_error: "価格は0以上の整数を指定してください" })
+  .number({ error: "価格は0以上の整数を指定してください" })
   .int({ message: "価格は0以上の整数を指定してください" })
   .min(0, { message: "価格は0以上の整数を指定してください" })
   .max(DATABASE_INT_MAX, { message: `価格は${DATABASE_INT_MAX}以下で指定してください` });
 
 const productCategorySchema = z
-  .string({ required_error: "カテゴリは必須です" })
+  .string({ error: "カテゴリは必須です" })
   .refine((v) => (VALID_PRODUCT_CATEGORIES as readonly string[]).includes(v), {
     message: `カテゴリは${VALID_PRODUCT_CATEGORIES.join(", ")}のいずれかを指定してください`,
   });
@@ -99,7 +99,7 @@ const stockSchema = z
 const VARCHAR_MAX = 191;
 
 function storedText(requiredMessage: string, lengthMessage?: string) {
-  const input = z.string({ required_error: requiredMessage }).min(1, { message: requiredMessage });
+  const input = z.string({ error: requiredMessage }).min(1, { message: requiredMessage });
   const sanitized = input.transform((value) => xss(value));
   return sanitized.pipe(lengthMessage
     ? z.string().min(1, { message: requiredMessage }).max(VARCHAR_MAX, { message: lengthMessage })
@@ -150,7 +150,7 @@ const amazonUrlSchema = makeHttpUrlSchema(
 );
 
 const idSchema = z
-  .number({ required_error: "IDは必須です", invalid_type_error: "IDは必須です" })
+  .number({ error: "IDは必須です" })
   .int({ message: "IDは必須です" })
   .positive({ message: "IDは必須です" })
   .max(DATABASE_INT_MAX, { message: "IDが範囲外です" });
@@ -177,7 +177,7 @@ const metaDescriptionSchema = z.string()
   .transform((value) => value || null);
 
 const sleeveMmSchema = z
-  .number({ invalid_type_error: "スリーブの寸法は数値で指定してください" })
+  .number({ error: "スリーブの寸法は数値で指定してください" })
   .positive({ message: "スリーブの寸法は0より大きい値にしてください" })
   .max(1000, { message: "スリーブの寸法は1000mm以下にしてください" });
 
@@ -225,14 +225,14 @@ export type ProductSleeveItemInput = z.infer<typeof productSleeveItemSchema>;
  */
 export const productSleeveSchema = productSleeveItemSchema.extend({
   count: z
-    .number({ invalid_type_error: "スリーブの枚数は整数で指定してください" })
+    .number({ error: "スリーブの枚数は整数で指定してください" })
     .int({ message: "スリーブの枚数は整数で指定してください" })
     .min(1, { message: "スリーブの枚数は1以上にしてください" })
     .max(1000, { message: "スリーブの枚数は1000以下にしてください" })
     .optional()
     .nullable(),
   discount: z
-    .number({ invalid_type_error: "値引き額は整数で指定してください" })
+    .number({ error: "値引き額は整数で指定してください" })
     .int({ message: "値引き額は整数で指定してください" })
     .min(0, { message: "値引き額は0以上にしてください" })
     .max(DATABASE_INT_MAX, { message: "値引き額が大きすぎます" })
@@ -292,14 +292,14 @@ export const DesignerProductSchema = z.object({
 export type DesignerProductInput = z.infer<typeof DesignerProductSchema>;
 
 const galleryCategorySchema = z
-  .string({ required_error: "カテゴリは必須です" })
+  .string({ error: "カテゴリは必須です" })
   .refine((v) => (VALID_GALLERY_CATEGORIES as readonly string[]).includes(v), {
     message: `カテゴリは${VALID_GALLERY_CATEGORIES.join(", ")}のいずれかを指定してください`,
   });
 
 // 作品に使った商品のID。重複は1件にまとめる。未送信（undefined）は「紐づけを変更しない」を表す。
 const workProductIdsSchema = z
-  .array(idSchema, { invalid_type_error: "使用商品の指定が正しくありません" })
+  .array(idSchema, { error: "使用商品の指定が正しくありません" })
   .transform((ids) => [...new Set(ids)])
   .pipe(z.array(z.number()).max(WORK_PRODUCTS_MAX, {
     message: `使用商品は${WORK_PRODUCTS_MAX}件以内で指定してください`,
@@ -362,7 +362,7 @@ export const RequiredIdSchema = z.object({ id: idSchema });
 // （サーバーが取りに行く先を外部から指定できるとSSRFになるため）。
 export const XPostSchema = z.object({
   text: z
-    .string({ required_error: "本文は必須です" })
+    .string({ error: "本文は必須です" })
     .min(1, { message: "本文は必須です" })
     .max(X_POST_MAX_LENGTH, {
       message: `本文は${X_POST_MAX_LENGTH}文字以内で入力してください`,
