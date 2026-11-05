@@ -15,6 +15,13 @@ RUN npx prisma generate
 # ソースコードをコピーしてビルド
 COPY . .
 
+# デプロイ時の migrate deploy に使う prisma CLI の依存を、ロックファイルどおりの node_modules から集める。
+# 本番ステージは standalone の最小 node_modules しか持たないため、CLI の間接依存
+# （6.19 で effect, c12, empathic など約30個）を手書きで追うと更新のたびに漏れる（#381）。
+# @prisma/*（エンジンのバイナリ入りで約110MB）は本番ステージで丸ごとコピーするので、ここでは外して二重に積まない。
+RUN node scripts/collect-prisma-cli-deps.js /app/node_modules /prisma-cli/node_modules \
+  && rm -rf /prisma-cli/node_modules/@prisma
+
 # NEXT_PUBLIC_* はビルド時に存在すればインライン展開され、実行時の環境変数より優先される。
 # 静的生成ページ（/about, /company, /legal, /privacy-policy, /shipping）のHTMLは
 # ここで確定するため、ビルド時に渡さないと実行時に .env を与えても反映されない（#128）。
@@ -38,12 +45,17 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+# prisma CLI 本体とその依存（builder で collect-prisma-cli-deps.js が集めたもの）を node_modules に重ねる。
+COPY --from=builder /prisma-cli/node_modules ./node_modules
 COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 # 画像最適化(next/image)に必要な sharp とネイティブ依存(@img)を runtime に同梱（#196）。
 # standalone のトレースに依存せず確実にコピーする。
 COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
 COPY --from=builder /app/node_modules/@img ./node_modules/@img
+
+# migration を実行する prisma CLI がこのイメージで起動できることを確認する。
+# 依存不足はデプロイ中（旧アプリ停止後）ではなく、イメージのビルドで失敗させる（#381）。
+RUN CHECKPOINT_DISABLE=1 node node_modules/prisma/build/index.js --version
 
 EXPOSE 3000
 CMD ["node", "server.js"]

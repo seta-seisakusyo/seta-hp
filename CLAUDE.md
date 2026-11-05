@@ -272,6 +272,7 @@ worktree はコード編集・レビュー・`yarn lint` / `yarn test` / `yarn b
 - ブランチ: `main`(本番) → `develop`(開発) → 作業ブランチ `{type}/{issue番号}`（例: `fix/101`, `feature/132`）
 - CI/CD（`.github/workflows/deploy_production.yml`）
   - `develop` 宛の PR: migration の空DB適用・lint・typecheck・test・build・Nginx設定検証
-  - `main` への push: 上記に加え、GHCR へイメージを push して本番サーバーへデプロイ
+  - `main` への push: 上記に加え、GHCR へイメージを push して本番サーバーへデプロイ。デプロイは旧アプリを止める前に、新イメージで prisma CLI が起動できるかを確認する（#381）
+- 本番イメージの `node_modules` は standalone 出力の最小構成。migration 用の prisma CLI とその依存は `next/scripts/collect-prisma-cli-deps.js` がビルド時に集めてコピーし、イメージのビルドで CLI の起動確認を行う（#381）
 - 依存関係の更新は Dependabot（`.github/dependabot.yml`）が毎週月曜に PR を立てる。フレームワーク（Next / React / MUI / Prisma）のメジャー更新と MySQL のマイナー更新は自動提案させておらず、手動で計画して上げる
 - `deploy_production.yml` の `services.mysql.image` は Dependabot の対象外なので、compose 側の MySQL を上げたら手で合わせる

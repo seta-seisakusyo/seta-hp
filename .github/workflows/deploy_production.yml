@@ -207,6 +207,16 @@ jobs:
             IMAGE_TAG="${IMAGE_TAG}" docker compose -f docker-compose.yml run --rm --no-deps \
               -e NGINX_TEST_ONLY=1 nginx
 
+            # migration を実行する prisma CLI が新イメージで起動できるかを、旧アプリを止める前に確認する。
+            # 依存不足で CLI 自体が動かないと、停止したまま終わって無用な停止時間になる（#381）。
+            echo "Checking the Prisma CLI in the new image..."
+            if ! IMAGE_TAG="${IMAGE_TAG}" docker compose -f docker-compose.yml run --rm --no-deps \
+              -e CHECKPOINT_DISABLE=1 next node node_modules/prisma/build/index.js --version
+            then
+              echo "ERROR: Prisma CLI cannot start in ${FULL_IMAGE}. Aborting before stopping the application."
+              exit 1
+            fi
+
             # 現在のIMAGE_TAGを保持（障害調査・手動ロールバック用）
             PREV_TAG=$(grep '^IMAGE_TAG=' .env 2>/dev/null | cut -d= -f2 || echo "")
             echo "Previous IMAGE_TAG: ${PREV_TAG:-none}"
