@@ -29,7 +29,9 @@ RUN node scripts/collect-prisma-cli-deps.js /app/node_modules /prisma-cli/node_m
 ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=""
 ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
 
-RUN yarn build
+# next/font/google が Google Fonts から拡張子なしの URL を受け取るとビルドが落ちる（#370、上流 vercel/next.js#99114）。
+# やり直せば通る種類の失敗なので一度だけ再実行する。実際の不具合なら二度目も失敗する。
+RUN yarn build || (echo "yarn build failed once; retrying (#370)" && yarn build)
 
 # ===== 本番ステージ（軽量）=====
 FROM node:20-alpine AS runner
