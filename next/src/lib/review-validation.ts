@@ -19,10 +19,7 @@ const requiredCleanText = (max: number, message: string) =>
   );
 
 const coordinate = z
-  .number({
-    required_error: "座標が不正です",
-    invalid_type_error: "座標が不正です",
-  })
+  .number({ error: "座標が不正です" })
   .finite({ message: "座標が不正です" });
 
 const requiredFieldsMessage = "pageUrl / authorName / content は必須です";
@@ -46,7 +43,6 @@ export const ReviewReplyCreateSchema = z.object({
 
 export const ReviewStatusUpdateSchema = z.object({
   status: z.enum(REVIEW_STATUSES, {
-    required_error: "status は open または resolved を指定してください",
-    invalid_type_error: "status は open または resolved を指定してください",
+    error: "status は open または resolved を指定してください",
   }),
 });

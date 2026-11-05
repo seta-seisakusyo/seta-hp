@@ -194,7 +194,7 @@ describe("管理APIスキーマ", () => {
     });
     expect(invalid.success).toBe(false);
     if (!invalid.success) {
-      expect(invalid.error.errors[0].message).toBe("日付の形式が正しくありません");
+      expect(invalid.error.issues[0].message).toBe("日付の形式が正しくありません");
     }
   });
 
@@ -211,7 +211,7 @@ describe("管理APIスキーマ", () => {
     const result = NewsCreateSchema.safeParse({ title: "公開日", date: "2026-08-07" });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.errors[0].message).toBe("タイトル、内容、日付は必須です");
+      expect(result.error.issues[0].message).toBe("タイトル、内容、日付は必須です");
     }
   });
 
