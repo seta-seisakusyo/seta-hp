@@ -88,7 +88,10 @@ jobs:
 
       - name: Build production application
         working-directory: ./next
-        run: yarn build
+        # next/font/google が Google Fonts から拡張子なしの URL を受け取るとビルドが落ちる
+        # （#370、上流 vercel/next.js#99114。16 系で修正済み、15.5 系は #101175 で backport 中）。
+        # やり直せば通る種類の失敗なので一度だけ再実行する。実際の不具合なら二度目も失敗する。
+        run: yarn build || (echo "::warning::yarn build failed once; retrying (#370)" && yarn build)
 
       - name: Validate Nginx configuration
         run: bash scripts/test-nginx-config.sh
