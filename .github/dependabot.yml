@@ -1,0 +1,74 @@
+version: 2
+updates:
+  # Next.js アプリの依存関係
+  - package-ecosystem: "npm"
+    directory: "/next"
+    schedule: { interval: "weekly", day: "monday", time: "09:00", timezone: "Asia/Tokyo" }
+    open-pull-requests-limit: 3
+    commit-message: { prefix: "依存関係更新: " }
+    labels: ["infrastructure"]
+    groups:
+      react-next:
+        patterns: ["react", "react-dom", "@types/react*", "next", "eslint-config-next", "@mui/material-nextjs"]
+      mui-emotion:
+        patterns: ["@mui/*", "@emotion/*"]
+      prisma:
+        patterns: ["prisma", "@prisma/client"]
+      auth:
+        patterns: ["next-auth", "@auth/*"]
+      dev-tools:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+    ignore:
+      # 大型移行になるものはメジャーを自動提案させない（手動で計画して上げる）
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      # next と同じメジャーで揃える。v16 は flat config 専用で .eslintrc.json では動かない（#363）
+      - dependency-name: "eslint-config-next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "prisma"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/client"
+        update-types: ["version-update:semver-major"]
+
+  # next/Dockerfile のベースイメージ（node:20-alpine）
+  - package-ecosystem: "docker"
+    directory: "/next"
+    schedule: { interval: "weekly", day: "monday", time: "09:00", timezone: "Asia/Tokyo" }
+    open-pull-requests-limit: 2
+    commit-message: { prefix: "コンテナ更新: " }
+    labels: ["infrastructure"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # docker-compose.yml の mysql / nginx
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday", time: "09:00", timezone: "Asia/Tokyo" }
+    open-pull-requests-limit: 2
+    commit-message: { prefix: "コンテナ更新: " }
+    labels: ["infrastructure"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # MySQL は 8.0 → 8.4 が「マイナー」扱いになるが実質メジャー移行なので、パッチだけ受ける
+      - dependency-name: "mysql"
+        update-types: ["version-update:semver-minor"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday", time: "09:00", timezone: "Asia/Tokyo" }
+    open-pull-requests-limit: 3
+    commit-message: { prefix: "CI依存更新: " }
+    labels: ["infrastructure"]
+    groups:
+      actions:
+        patterns: ["*"]
