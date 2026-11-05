@@ -23,6 +23,9 @@ updates:
       # 大型移行になるものはメジャーを自動提案させない（手動で計画して上げる）
       - dependency-name: "next"
         update-types: ["version-update:semver-major"]
+      # next と同じメジャーで揃える。v16 は flat config 専用で .eslintrc.json では動かない（#363）
+      - dependency-name: "eslint-config-next"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"
