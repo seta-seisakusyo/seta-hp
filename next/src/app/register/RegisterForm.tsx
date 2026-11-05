@@ -38,7 +38,7 @@ export default function RegisterForm({ isGoogleEnabled }: RegisterFormProps) {
     // サーバー側（/api/register）と同じ Zod スキーマでクライアント検証する
     const parsed = RegistrationSchema.safeParse({ name, email, password });
     if (!parsed.success) {
-      setError(parsed.error.errors[0].message);
+      setError(parsed.error.issues[0].message);
       return;
     }
 
