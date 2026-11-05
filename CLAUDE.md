@@ -276,3 +276,4 @@ worktree はコード編集・レビュー・`yarn lint` / `yarn test` / `yarn b
 - 本番イメージの `node_modules` は standalone 出力の最小構成。migration 用の prisma CLI とその依存は `next/scripts/collect-prisma-cli-deps.js` がビルド時に集めてコピーし、イメージのビルドで CLI の起動確認を行う（#381）
 - 依存関係の更新は Dependabot（`.github/dependabot.yml`）が毎週月曜に PR を立てる。フレームワーク（Next / React / MUI / Prisma）のメジャー更新と MySQL のマイナー更新は自動提案させておらず、手動で計画して上げる
 - `deploy_production.yml` の `services.mysql.image` は Dependabot の対象外なので、compose 側の MySQL を上げたら手で合わせる
+- `next/package.json` の `resolutions` は、依存元が古い版を固定していて Dependabot では直せない脆弱性の上書き（#394）: `postcss`（`next` が 8.4.31 を固定）と `@typescript-eslint/typescript-estree` 配下の `minimatch`（9 系に修正版がない）。依存元が新しい版を要求するようになったら外す
