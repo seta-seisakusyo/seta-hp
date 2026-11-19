@@ -4,6 +4,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# 本番と同じイメージで検証する（docker-compose.yml の nginx サービスの image を使う）。
+NGINX_IMAGE="${NGINX_IMAGE:-$(awk '/^  nginx:/{f=1;next} f&&/^  [^ ]/{exit} f&&$1=="image:"{sub(/\r$/,"",$2);print $2;exit}' "$PROJECT_DIR/docker-compose.yml")}"
+if [ -z "$NGINX_IMAGE" ]; then
+  echo "docker-compose.yml から nginx のイメージを取得できません" >&2
+  exit 1
+fi
+echo "Using ${NGINX_IMAGE}"
 TMP_DIR="$(mktemp -d)"
 cleanup() {
   chmod -R u+rwX "$TMP_DIR" 2>/dev/null || true
@@ -30,7 +37,7 @@ docker run --rm \
   -v "$TMP_DIR/certbot:/var/www/certbot:ro" \
   -v "$TMP_DIR/uploads:/var/www/uploads:ro" \
   -v "$PROJECT_DIR/nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro" \
-  nginx:1.27-alpine /docker-entrypoint.sh
+  "$NGINX_IMAGE" /docker-entrypoint.sh
 
 CONFIG="$TMP_DIR/conf.d/default.conf"
 COMMON="$TMP_DIR/conf.d/designer_authenticated_backend.inc"
@@ -117,7 +124,7 @@ run_rate_limit_probe() {
     -v "$TMP_DIR/certbot:/var/www/certbot:ro" \
     -v "$TMP_DIR/uploads:/var/www/uploads:ro" \
     -v "$PROJECT_DIR/nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro" \
-    nginx:1.27-alpine -c '
+    "$NGINX_IMAGE" -c '
       /docker-entrypoint.sh >/dev/null 2>&1 || exit 1
       printf "server { listen 3000; location / { return 200 \"ok\"; } }\n" > /etc/nginx/conf.d/zz_stub_upstream.conf
       nginx || exit 1
