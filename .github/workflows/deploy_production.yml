@@ -205,6 +205,21 @@ jobs:
             # 指定SHAのイメージをpull
             docker pull "${FULL_IMAGE}"
 
+            # Nginx イメージもアプリ停止前に取得する。compose は手元にあるイメージをそのまま使うため、
+            # pull しないと docker-compose.yml の版を上げても本番の Nginx は更新されない。
+            # 期待する版は compose が解決した参照から取り、workflow には二重に書かない。
+            NGINX_REF=$(IMAGE_TAG="${IMAGE_TAG}" docker compose -f docker-compose.yml config --images \
+              | grep -E '^(docker\.io/(library/)?)?nginx:' | head -n1)
+            NGINX_EXPECTED_VERSION=$(printf '%s\n' "${NGINX_REF}" | sed -nE 's/^.*nginx:([0-9]+\.[0-9]+\.[0-9]+)(-[a-z0-9.]+)?$/\1/p')
+            if [ -z "${NGINX_EXPECTED_VERSION}" ]; then
+              echo "ERROR: Nginx image must be pinned to an exact X.Y.Z version (got: '${NGINX_REF}')."
+              exit 1
+            fi
+            echo "Nginx image: ${NGINX_REF} (expect nginx/${NGINX_EXPECTED_VERSION})"
+            docker compose -f docker-compose.yml pull nginx
+            NGINX_EXPECTED_ID=$(docker image inspect -f '{{.Id}}' "${NGINX_REF}")
+            echo "Nginx (pulled): id=${NGINX_EXPECTED_ID}"
+
             # アプリ停止前に、同期したテンプレートとentrypointでNginx設定を検証する。
             echo "Validating Nginx configuration..."
             IMAGE_TAG="${IMAGE_TAG}" docker compose -f docker-compose.yml run --rm --no-deps \
@@ -292,6 +307,23 @@ jobs:
               fi
               sleep 5
             done
+
+            # 稼働中の Nginx が取得した版そのものかを確認する（旧コンテナ・旧イメージの残存を成功扱いにしない）。
+            # exec -T でも標準入力はつながるため、</dev/null で閉じてスクリプトの残りを読ませない。
+            NGINX_RUNNING_ID=$(docker inspect -f '{{.Image}}' nginx_proxy 2>/dev/null || echo missing)
+            if [ "${NGINX_RUNNING_ID}" != "${NGINX_EXPECTED_ID}" ]; then
+              echo "ERROR: Running Nginx image (${NGINX_RUNNING_ID}) does not match the pulled image (${NGINX_EXPECTED_ID})."
+              exit 1
+            fi
+            docker compose -f docker-compose.yml exec -T nginx nginx -t </dev/null
+            NGINX_RUNNING_VERSION=$(docker compose -f docker-compose.yml exec -T nginx nginx -v </dev/null 2>&1 \
+              | sed -nE 's|^nginx version: nginx/([0-9.]+).*|\1|p')
+            if [ "${NGINX_RUNNING_VERSION}" != "${NGINX_EXPECTED_VERSION}" ]; then
+              echo "ERROR: Running Nginx version (${NGINX_RUNNING_VERSION:-unknown}) does not match ${NGINX_EXPECTED_VERSION}."
+              exit 1
+            fi
+            NGINX_DIGEST=$(docker image inspect -f '{{join .RepoDigests " "}}' "${NGINX_EXPECTED_ID}" 2>/dev/null || true)
+            echo "Nginx (running): version=${NGINX_RUNNING_VERSION} id=${NGINX_RUNNING_ID} digest=${NGINX_DIGEST}"
 
             # 古いイメージのクリーンアップ（異なるイメージIDで直近3世代＋現行・直前の版を保持）。
             # 失敗は警告に出すだけでデプロイは止めない（scripts/cleanup-images.sh）。
