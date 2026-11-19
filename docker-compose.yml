@@ -63,7 +63,9 @@ services:
       start_period: 30s
 
   nginx:
-    image: nginx:1.31-alpine
+    # パッチ版まで固定する。"1.31-alpine" のような可変タグだと、本番に一度取得した古い版が
+    # 使われ続け、デプロイしても更新されない（2026-11-18 公開の脆弱性対応で 1.31.9 に固定）。
+    image: nginx:1.31.9-alpine
     container_name: nginx_proxy
     logging: *default-logging
     ports:
