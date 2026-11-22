@@ -12,6 +12,7 @@ import {
 } from "@/lib/types/product";
 import ProductSleeveInfo from "./ProductSleeveInfo";
 import { formatRefNumber } from "@/lib/format";
+import { MADE_TO_ORDER_SHIPPING_NOTE } from "@/lib/site-config";
 import { FONT_DISPLAY, FONT_ITALIC } from "@/theme/themeConstants";
 
 interface Props {
@@ -229,7 +230,7 @@ const ProductDetail: React.FC<Props> = ({ product }) => {
               lineHeight: 1.7,
             }}
           >
-            受注生産のため、発送日はご注文後にメールでご連絡いたします。
+            {MADE_TO_ORDER_SHIPPING_NOTE}
             <br />
             お急ぎの場合は
             <Box

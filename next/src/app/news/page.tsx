@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/metadata";
 import { requireEditorPage } from "@/lib/admin-auth";
 import AdminPageShell from "@/components/manage/AdminPageShell";
 import NewsManagement from "./NewsManagement";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "お知らせ管理",
-  robots: { index: false },
-};
+  path: "/news",
+  noindex: true,
+});
 
 export default async function NewsPage() {
   const session = await requireEditorPage();

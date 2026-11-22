@@ -1,12 +1,37 @@
 import { parseProductImages, type Product } from "@/lib/types/product";
 import { getStockMeta } from "@/lib/constants/categories";
 import { formatRefNumber } from "@/lib/format";
-import { SITE_NAME, SITE_URL } from "@/lib/site-config";
+import {
+  CONTACT_EMAIL,
+  LOGO_PATH,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_NAME_READING,
+  SITE_URL,
+  X_PROFILE_URL,
+} from "@/lib/site-config";
 
 // 相対パス（/uploads/...）を絶対URLに変換する。外部URLはそのまま。
 function toAbsoluteUrl(path: string): string {
   if (/^https?:\/\//.test(path)) return path;
   return `${SITE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
+/**
+ * サイト運営者を表す schema.org/Organization 構造化データ。ルートレイアウトで全ページに埋め込む。
+ */
+export function buildOrganizationJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_NAME,
+    alternateName: SITE_NAME_READING,
+    url: SITE_URL,
+    logo: toAbsoluteUrl(LOGO_PATH),
+    description: SITE_DESCRIPTION,
+    email: CONTACT_EMAIL,
+    sameAs: [X_PROFILE_URL],
+  };
 }
 
 /**
@@ -41,7 +66,8 @@ export function buildProductJsonLd(product: Product): Record<string, unknown> {
 
 /**
  * 商品ページ用 schema.org/BreadcrumbList 構造化データを生成する。
- * ProductDetail の表示パンくず（Home / Catalogue / 商品）と対応。
+ * 階層は ProductDetail の表示パンくず（Home / Catalogue / Ref. NNN）と同じ3段だが、
+ * 名前は検索結果に出す前提で日本語の「ホーム / 商品一覧 / 商品名」にしており、表示とは一致しない。
  */
 export function buildBreadcrumbJsonLd(product: Product): Record<string, unknown> {
   return {

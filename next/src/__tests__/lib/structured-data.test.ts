@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildProductJsonLd, buildBreadcrumbJsonLd } from "@/lib/structured-data";
+import {
+  buildProductJsonLd,
+  buildBreadcrumbJsonLd,
+  buildOrganizationJsonLd,
+} from "@/lib/structured-data";
+import { SITE_DESCRIPTION } from "@/lib/site-config";
 import type { Product } from "@/lib/types/product";
 
 const baseProduct: Product = {
@@ -21,6 +26,22 @@ const baseProduct: Product = {
   designerUrl: null,
   sleeve: null,
 };
+
+describe("buildOrganizationJsonLd", () => {
+  it("運営者の Organization を出力する", () => {
+    expect(buildOrganizationJsonLd()).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "飾Love",
+      alternateName: "かざらぶ",
+      url: "https://kaza-love.com",
+      logo: "https://kaza-love.com/kaza-love_logo.png",
+      description: SITE_DESCRIPTION,
+      email: "info@kaza-love.com",
+      sameAs: ["https://x.com/kaza_love_"],
+    });
+  });
+});
 
 describe("buildProductJsonLd", () => {
   it("Product 型と基本フィールドを出力する", () => {

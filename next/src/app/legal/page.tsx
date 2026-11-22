@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
-import { CONTACT_EMAIL } from "@/lib/site-config";
+import {
+  CONTACT_EMAIL,
+  MADE_TO_ORDER_SHIPPING_NOTE,
+  OPERATOR_INFO,
+  SITE_NAME,
+  SITE_NAME_WITH_READING,
+} from "@/lib/site-config";
+import { buildPageMetadata } from "@/lib/metadata";
 import LegalPageLayout from "../_legal/LegalPageLayout";
 import LegalInfoTable, { LegalInfoRow } from "../_legal/LegalInfoTable";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "特定商取引法に基づく表記",
-  description: "飾Love(運営: 瀬田製作所)の特定商取引法に基づく表記です。",
-  alternates: { canonical: "/legal" },
-};
+  description: `${SITE_NAME}(運営: ${OPERATOR_INFO.name})の特定商取引法に基づく表記です。`,
+  path: "/legal",
+});
 
 const ROWS: LegalInfoRow[] = [
-  { label: "サイト名", value: "飾Love(かざらぶ)" },
-  { label: "販売業者", value: "瀬田製作所(個人事業所)" },
-  { label: "運営責任者", value: "伊藤竜次" },
-  { label: "所在地", value: "※ご請求いただいた方にお知らせいたします" },
-  { label: "電話番号", value: "※ご請求いただいた方にお知らせいたします" },
+  { label: "サイト名", value: SITE_NAME_WITH_READING },
+  { label: "販売業者", value: OPERATOR_INFO.legalName },
+  { label: "運営責任者", value: OPERATOR_INFO.representative },
+  { label: "所在地", value: `※${OPERATOR_INFO.disclosedOnRequest}` },
+  { label: "電話番号", value: `※${OPERATOR_INFO.disclosedOnRequest}` },
   { label: "メールアドレス", value: CONTACT_EMAIL },
   {
     label: "販売方法",
@@ -30,8 +37,7 @@ const ROWS: LegalInfoRow[] = [
   { label: "支払時期", value: "各販売サイト（BASE・Amazon）の定めに準じます。" },
   {
     label: "商品の引渡時期",
-    value:
-      "受注生産のため、発送日はご注文後にメールでご連絡いたします\n※お急ぎの場合は、ご注文前にお問い合わせください",
+    value: `${MADE_TO_ORDER_SHIPPING_NOTE}\n※お急ぎの場合は、ご注文前にお問い合わせください`,
   },
   {
     label: "返品・交換について",

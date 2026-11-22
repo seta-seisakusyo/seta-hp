@@ -51,7 +51,8 @@ seta-hp/
 │   │   │   ├── upload-paths.ts  # アップロード画像の URL⇔ファイル名と Zod スキーマ（クライアントからも読む）
 │   │   │   ├── upload-storage.ts # 保存先ディレクトリ（唯一の定義）・保存・削除・X 投稿用の読み込み
 │   │   │   ├── validation.ts    # Zodバリデーション（統一済み）
-│   │   │   ├── site-config.ts   # サイトURL・名称・連絡先の定数
+│   │   │   ├── site-config.ts   # サイトURL・名称・連絡先・ロゴ・運営事業者情報・発送の定型文の定数
+│   │   │   ├── metadata.ts      # ページのメタデータ（canonical・OG・X カード）を組み立てる buildPageMetadata
 │   │   │   ├── navigation.ts    # ヘッダー・スマホメニュー・フッター共通のリンク定義
 │   │   │   ├── x-client.ts      # X API クライアント
 │   │   │   ├── auth.config.ts   # NextAuth共通設定（Cookie・JWT・pages・JWT→session）。middleware も使うので DB 等を import しない
@@ -232,7 +233,8 @@ API の認可とJSON検証は `src/lib/api-utils.ts` の `parseEditorJson` / `pa
 - `src/app/robots.ts` と `src/app/sitemap.ts` が正本（App Router Metadata Route）
 - `public/robots.txt` / `public/sitemap*.xml` の静的生成物は使用しない
 - sitemapはリクエスト時に公開商品をDBから取得し、静的ページと合わせて返す
-- 構造化データ（JSON-LD）は `src/lib/structured-data.ts` で組み立て、`src/lib/json-ld.ts` でエスケープして埋め込む
+- 構造化データ（JSON-LD）は `src/lib/structured-data.ts` で組み立て（Organization・Product・BreadcrumbList）、`<JsonLd data>`（`src/components/JsonLd.tsx`、`src/lib/json-ld.ts` でエスケープ）で埋め込む
+- ページのメタデータは `buildPageMetadata()`（`src/lib/metadata.ts`）で組み立てる。ルートレイアウトには canonical・og:url・og:title を置かない（置くと、指定していないページがトップの値を引き継ぐ。#417）。noindex のページは `noindex: true` で canonical を出さない
 
 ### Styling
 - MUIコンポーネント + カスタムテーマ (`src/theme/`)

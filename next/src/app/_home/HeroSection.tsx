@@ -3,6 +3,7 @@ import SectionContainer from "@/components/SectionContainer";
 import { FONT_DISPLAY, PHRASE_WRAP_SX } from "@/theme/themeConstants";
 import Image from "next/image";
 import { isUploadedImageUrl } from "@/lib/images";
+import { LOGO_PATH } from "@/lib/site-config";
 
 interface HeroSectionProps {
   /**
@@ -14,7 +15,7 @@ interface HeroSectionProps {
 
 const HeroSection = ({ heroImage }: HeroSectionProps) => {
   const showVisual = heroImage !== undefined;
-  const imageSrc = heroImage || "/kaza-love_logo.png";
+  const imageSrc = heroImage || LOGO_PATH;
 
   return (
     <Box

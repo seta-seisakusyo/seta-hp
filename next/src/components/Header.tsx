@@ -9,7 +9,7 @@ import MobileNavDrawer from "@/components/MobileNavDrawer";
 import SectionContainer from "@/components/SectionContainer";
 import XIcon from "@/components/XIcon";
 import { NAV_LINKS } from "@/lib/navigation";
-import { X_PROFILE_URL } from "@/lib/site-config";
+import { LOGO_PATH, X_PROFILE_URL } from "@/lib/site-config";
 import { FONT_DISPLAY, HEADER_HEIGHTS } from "@/theme/themeConstants";
 
 // next-auth のクライアントJSは遅延チャンクに分離（初期バンドル削減 #245）
@@ -65,7 +65,7 @@ export default function Header() {
               >
                 <Box
                   component="img"
-                  src="/kaza-love_logo.png"
+                  src={LOGO_PATH}
                   alt=""
                   sx={{
                     height: { xs: 32, md: 38 },

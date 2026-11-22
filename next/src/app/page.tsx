@@ -5,20 +5,21 @@ import CatalogueSection from "./_home/CatalogueSection";
 import { getHomeProductData } from "./_home/getHomeProductData";
 import FeaturesSection from "./_home/FeaturesSection";
 import CTASection from "./_home/CTASection";
+import { buildPageMetadata } from "@/lib/metadata";
+import { SITE_DEFAULT_TITLE, SITE_DESCRIPTION } from "@/lib/site-config";
 
 // リクエスト毎にレンダリングする（ヒーロー画像を出していた頃はリクエスト毎に抽選していた）。
 // 表示データ自体は unstable_cache（products タグ）でキャッシュ済みのため、DBアクセスは発生しない。
 // ※ CIビルド時はDBに到達できないため、静的生成（ISR）にはしない。
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "飾Love | MLBカード・トレカを美しく飾る",
-  description:
-    "MLBカード・トレカを美しく飾るための、小さな個人工房から。レーザー加工で一つずつ手作りのアクリルディスプレイ。",
-  alternates: {
-    canonical: "/",
-  },
-};
+// 題名は template（「… | 飾Love」）を付けずにそのまま使う。説明文はサイト共通の SITE_DESCRIPTION
+// （OG・Organization の構造化データと同じ文）に揃える。
+export const metadata: Metadata = buildPageMetadata({
+  title: { absolute: SITE_DEFAULT_TITLE },
+  description: SITE_DESCRIPTION,
+  path: "/",
+});
 
 export default async function HomePage() {
   const { catalogueProducts } = await getHomeProductData();

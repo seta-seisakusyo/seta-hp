@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import LegalPageLayout from "../_legal/LegalPageLayout";
 import PrivacyPolicy from "./PrivacyPolicy";
+import { buildPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "プライバシーポリシー",
   description:
     "飾Love(運営: 瀬田製作所)のプライバシーポリシー。個人情報の取り扱い、利用目的、第三者提供についてご説明します。",
-  alternates: { canonical: "/privacy-policy" },
-};
+  path: "/privacy-policy",
+});
 
 export default function PrivacyPolicyPage() {
   return (

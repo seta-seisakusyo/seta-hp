@@ -7,15 +7,14 @@ import PageHero from "@/components/PageHero";
 import { isRecaptchaEnabled } from "@/lib/runtime-config";
 import { isAdminRole } from "@/lib/roles";
 import InquiryManagement from "./InquiryManagement";
+import { buildPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "お問い合わせ",
   description:
     "飾Loveへのお問い合わせはこちらから。商品に関するご質問やオーダーメイド、MLBカード・トレカ用アクリルディスプレイの特注相談など、お気軽にどうぞ。",
-  alternates: {
-    canonical: "/contact",
-  },
-};
+  path: "/contact",
+});
 
 export default async function ContactPage() {
   // Todo: middleware若しくはauth.ts(config含む)にて同様の設定が可能、かつパフォーマンス向上が期待できるため、今後改修予定

@@ -7,17 +7,18 @@ import ProductsGrid from "./_components/ProductsGrid";
 import PageHero from "@/components/PageHero";
 import DarkCtaSection from "@/components/DarkCtaSection";
 import { getPrimaryProductImage } from "@/lib/types/product";
+import { buildPageMetadata } from "@/lib/metadata";
 
 // searchParams（カテゴリ・ソート）に依存するため動的レンダリング。
 // 公開商品の取得は unstable_cache（products タグ）でキャッシュし、絞り込みはメモリ上で行う。
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "Catalogue / 商品一覧",
   description:
     "MLBカード・野球カードコレクター向けアクリルディスプレイの商品一覧。8枚・16枚・25枚の壁面展示モデルやオーダーメイドに対応。",
-  alternates: { canonical: "/products" },
-};
+  path: "/products",
+});
 
 // 公開商品の全件取得（新着順）。商品の書き込み時に products タグで無効化される。
 const getPublishedProducts = unstable_cache(

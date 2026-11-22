@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/metadata";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import AuthPageShell from "@/components/auth/AuthPageShell";
 import { isGoogleAuthEnabled } from "@/lib/runtime-config";
 import LoginForm from "./LoginForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "ログイン",
-  robots: { index: false, follow: false },
-};
+  path: "/login",
+  noindex: true,
+});
 
 export default async function LoginPage() {
   const session = await auth();

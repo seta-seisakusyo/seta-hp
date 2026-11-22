@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 import Link from "next/link";
 import SectionContainer from "@/components/SectionContainer";
 import XIcon from "@/components/XIcon";
-import { X_PROFILE_URL } from "@/lib/site-config";
+import { COPYRIGHT_NAME, LOGO_PATH, SITE_NAME_READING, X_PROFILE_URL } from "@/lib/site-config";
 import { PRODUCT_CATEGORIES } from "@/lib/constants/categories";
 import { POLICY_LINKS } from "@/lib/navigation";
 import { COLOR_DARK_ACCENT, FONT_DISPLAY } from "@/theme/themeConstants";
@@ -77,7 +77,7 @@ export default function Footer() {
             >
               <Box
                 component="img"
-                src="/kaza-love_logo.png"
+                src={LOGO_PATH}
                 alt=""
                 sx={{
                   height: 48,
@@ -86,7 +86,7 @@ export default function Footer() {
                   flexShrink: 0,
                 }}
               />
-              かざらぶ
+              {SITE_NAME_READING}
             </Box>
             <Typography
               sx={{
@@ -180,7 +180,7 @@ export default function Footer() {
             color: "rgba(255,255,255,0.4)",
           }}
         >
-          <span>© {new Date().getFullYear()} 飾Love</span>
+          <span>© {new Date().getFullYear()} {COPYRIGHT_NAME}</span>
           <span>Made in Japan</span>
         </Box>
       </SectionContainer>
