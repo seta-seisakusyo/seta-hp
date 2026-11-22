@@ -1,7 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
-import { unlink } from "fs/promises";
-import path from "path";
-import { normalizeImageUrl } from "@/lib/images";
+import { uploadFileNameFromUrl } from "@/lib/upload-paths";
+import { getUploadDir, unlinkUpload } from "@/lib/upload-storage";
 import { collectSleeveImageUrls } from "@/lib/types/product";
 
 type ImageRecord = {
@@ -10,28 +9,6 @@ type ImageRecord = {
   /** Product.sleeve（対応スリーブの画像も参照として数える） */
   sleeve?: unknown;
 };
-
-const UPLOAD_PATH_PREFIX = "/uploads/";
-
-function getUploadFileName(value: string | null | undefined): string | null {
-  const normalized = normalizeImageUrl(value);
-  // 外部URLの /uploads/ はローカルファイルとして扱わない。
-  if (!normalized?.startsWith(UPLOAD_PATH_PREFIX)) return null;
-
-  try {
-    const { pathname } = new URL(normalized, "http://localhost");
-    if (!pathname.startsWith(UPLOAD_PATH_PREFIX)) return null;
-
-    const fileName = decodeURIComponent(pathname.slice(UPLOAD_PATH_PREFIX.length));
-    if (!fileName || /[/\\\0]/.test(fileName) || fileName === "." || fileName === "..") {
-      return null;
-    }
-    return fileName;
-  } catch {
-    // 壊れたパーセントエンコードなど、過去データの不正URLは掃除対象から外す。
-    return null;
-  }
-}
 
 export function collectImageUrls(record: ImageRecord): string[] {
   const urls = new Set<string>();
@@ -48,7 +25,7 @@ export function collectImageUrls(record: ImageRecord): string[] {
 function collectUploadFileNames(urls: string[]): Set<string> {
   const names = new Set<string>();
   for (const url of urls) {
-    const name = getUploadFileName(url);
+    const name = uploadFileNameFromUrl(url);
     if (name) names.add(name);
   }
   return names;
@@ -63,8 +40,15 @@ export async function getReferencedUploadFileNames(prisma: PrismaClient): Promis
   return collectUploadFileNames([...products, ...works].flatMap(collectImageUrls));
 }
 
-/** 保存・削除後の後片付け。参照確認に失敗した場合はファイルを残す。 */
-export async function deleteUnusedUploadedFiles(prisma: PrismaClient, urls: string[]): Promise<void> {
+/**
+ * 保存・削除後の後片付け。参照確認に失敗した場合はファイルを残す。
+ * uploadDir はテストで一時ディレクトリを渡すためのもの（既定は getUploadDir()）。
+ */
+export async function deleteUnusedUploadedFiles(
+  prisma: PrismaClient,
+  urls: string[],
+  { uploadDir = getUploadDir() }: { uploadDir?: string } = {},
+): Promise<void> {
   const candidates = collectUploadFileNames(urls);
   if (candidates.size === 0) return;
 
@@ -76,20 +60,10 @@ export async function deleteUnusedUploadedFiles(prisma: PrismaClient, urls: stri
     return;
   }
 
-  const uploadDir = path.resolve(process.cwd(), "public", "uploads");
+  // 検証済みのファイル名をそのまま使い、URLの二重デコードを避ける。
   await Promise.all(
     [...candidates]
       .filter((name) => !referenced.has(name))
-      .map(async (name) => {
-        // 検証済みのファイル名をそのまま使い、URLの二重デコードを避ける。
-        const filePath = path.join(uploadDir, name);
-        try {
-          await unlink(filePath);
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-            console.error("Failed to delete uploaded file:", filePath, error);
-          }
-        }
-      }),
+      .map((name) => unlinkUpload(name, { uploadDir, logLabel: "Failed to delete uploaded file:" })),
   );
 }

@@ -1,6 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
-import { readdir, readFile, stat, unlink, writeFile } from "fs/promises";
+import { readdir, readFile, stat, writeFile } from "fs/promises";
 import path from "path";
+import { isSafeUploadFileName } from "@/lib/upload-paths";
+import { getUploadDir, unlinkUpload } from "@/lib/upload-storage";
 import { getReferencedUploadFileNames } from "@/lib/uploaded-files";
 
 /**
@@ -26,14 +28,10 @@ export interface SweepResult {
   skippedReason?: "reference-check-failed";
 }
 
-function defaultUploadDir(): string {
-  return path.join(process.cwd(), "public", "uploads");
-}
-
 /** 参照されず、作られてから SWEEP_MIN_AGE_MS 以上たった画像を消す。 */
 export async function sweepUnusedUploads(
   prisma: PrismaClient,
-  { uploadDir = defaultUploadDir(), now = Date.now() }: { uploadDir?: string; now?: number } = {}
+  { uploadDir = getUploadDir(), now = Date.now() }: { uploadDir?: string; now?: number } = {}
 ): Promise<SweepResult> {
   let referenced: Set<string>;
   try {
@@ -52,13 +50,15 @@ export async function sweepUnusedUploads(
 
   const deleted: string[] = [];
   for (const name of names) {
-    if (name.startsWith(".") || referenced.has(name)) continue;
+    // ドットファイル（実行記録など）は isSafeUploadFileName で除外される。
+    if (!isSafeUploadFileName(name) || referenced.has(name)) continue;
     const filePath = path.join(uploadDir, name);
     try {
       const info = await stat(filePath);
       if (!info.isFile() || now - info.mtimeMs < SWEEP_MIN_AGE_MS) continue;
-      await unlink(filePath);
-      deleted.push(name);
+      if (await unlinkUpload(name, { uploadDir, logLabel: "[upload-sweep] 画像を消せませんでした:" })) {
+        deleted.push(name);
+      }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         console.error("[upload-sweep] 画像を消せませんでした:", filePath, error);
@@ -93,7 +93,7 @@ export function maybeSweepUnusedUploads(
 ): Promise<SweepResult | null> {
   if (running) return running;
   running = (async () => {
-    const uploadDir = options.uploadDir ?? defaultUploadDir();
+    const uploadDir = options.uploadDir ?? getUploadDir();
     const now = options.now ?? Date.now();
     const stateFile = path.join(uploadDir, SWEEP_STATE_FILE);
     try {

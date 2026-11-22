@@ -9,10 +9,11 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
-import { IMAGE_ACCEPT, IMAGE_UPLOAD_HINT } from "@/lib/image-upload-constants";
+import { IMAGE_ACCEPT, IMAGE_UPLOAD_HINT, PRODUCT_MAX_IMAGES } from "@/lib/image-upload-constants";
 import { useImageUpload } from "@/lib/hooks/useImageUpload";
 
-const DEFAULT_MAX_IMAGES = 10;
+// 既定は商品画像の上限（API の検証と同じ値）。
+const DEFAULT_MAX_IMAGES = PRODUCT_MAX_IMAGES;
 
 interface MultiImageUploadProps {
   value: string[];

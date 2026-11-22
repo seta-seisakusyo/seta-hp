@@ -10,6 +10,7 @@ import {
   WorkCreateSchema,
   validateInquiry,
 } from "@/lib/validation";
+import { PRODUCT_MAX_IMAGES } from "@/lib/image-upload-constants";
 
 describe("InquirySchema", () => {
   const validData = {
@@ -170,6 +171,53 @@ describe("管理APIスキーマ", () => {
       isPublished: false,
     });
     expect(result.success).toBe(true);
+  });
+
+  describe("商品・作品の画像（#406）", () => {
+    const parseImages = (images: unknown) => ProductCreateSchema.safeParse({ ...product, images });
+    const workBase = { title: "壁面展示", description: "制作事例", category: "laser" };
+
+    it("アップロード済み画像を受け付ける", () => {
+      const result = parseImages(["/uploads/x.webp"]);
+      expect(result.success && result.data.images).toEqual(["/uploads/x.webp"]);
+    });
+
+    it("過去データの同一サイト絶対URLは /uploads/... に直して受け付ける", () => {
+      const result = parseImages([
+        "https://kaza-love.com/uploads/a.webp",
+        "https://setaseisakusyo.com/uploads/b.webp?version=1",
+        "uploads/c.webp",
+      ]);
+      expect(result.success && result.data.images).toEqual(["/uploads/a.webp", "/uploads/b.webp", "/uploads/c.webp"]);
+    });
+
+    it.each([
+      "https://evil.example/x.png",
+      "https://evil.example/uploads/x.png",
+      "/kaza-love_logo.png",
+      "/uploads/../x.png",
+    ])("外部・アップロード外の画像を拒否する: %s", (url) => {
+      expect(parseImages([url]).success).toBe(false);
+      expect(WorkCreateSchema.safeParse({ ...workBase, image: url }).success).toBe(false);
+    });
+
+    it(`商品画像は${PRODUCT_MAX_IMAGES}枚まで`, () => {
+      const urls = Array.from({ length: PRODUCT_MAX_IMAGES }, (_, i) => `/uploads/${i}.webp`);
+      expect(parseImages(urls).success).toBe(true);
+      expect(parseImages([...urls, "/uploads/over.webp"]).success).toBe(false);
+    });
+
+    it("画像なし（null・空配列）は受け付ける", () => {
+      expect(parseImages(null).success).toBe(true);
+      expect(parseImages([]).success).toBe(true);
+    });
+
+    it("作品の画像は正規化し、空文字・null は画像なしとして受け付ける", () => {
+      const result = WorkCreateSchema.safeParse({ ...workBase, image: "https://www.kaza-love.com/uploads/w.webp" });
+      expect(result.success && result.data.image).toBe("/uploads/w.webp");
+      expect(WorkCreateSchema.safeParse({ ...workBase, image: "" }).success).toBe(true);
+      expect(WorkCreateSchema.safeParse({ ...workBase, image: null }).success).toBe(true);
+    });
   });
 
   it("削除IDは正の整数だけを許可する", () => {
