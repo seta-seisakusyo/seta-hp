@@ -42,10 +42,27 @@ export const InquirySchema = z.object({
     .max(500, { message: "お問い合わせ内容は500文字以内で入力してください。" }),
 });
 
-export const InquirySubmissionSchema = InquirySchema.extend({
+/**
+ * 入力時の制約で検証 → 表示・メール向けにサニタイズ → 保存する値にも同じ制約を適用する。
+ * HTMLエスケープで文字数が増えるため、サニタイズ後にも上限を確認する（storedText と同じ書き方）。
+ */
+function sanitizedInquiryText(schema: z.ZodString) {
+  return schema.transform((value) => xss(value)).pipe(schema);
+}
+
+/** 問い合わせAPI（/api/email）の受信スキーマ。解析結果はそのまま保存・メール送信に使う。 */
+export const InquiryStoredSchema = z.object({
+  name: sanitizedInquiryText(InquirySchema.shape.name),
+  email: sanitizedInquiryText(InquirySchema.shape.email),
+  // 任意入力。未送信は空文字として保存する。
+  phone: InquirySchema.shape.phone
+    .transform((value) => xss(value || ""))
+    .pipe(InquirySchema.shape.phone.unwrap()),
+  inquiry: sanitizedInquiryText(InquirySchema.shape.inquiry),
   // トークンの型と内容は、有効時のみ verifyRecaptchaToken で検証する。
   recaptchaToken: z.unknown().optional(),
 });
+export type InquiryStoredInput = z.infer<typeof InquiryStoredSchema>;
 
 export const RecaptchaRequestSchema = z.object({
   token: z.unknown().optional(),
