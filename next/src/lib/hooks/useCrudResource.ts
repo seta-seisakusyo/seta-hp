@@ -21,12 +21,22 @@ interface PaginatedResourceResponse {
   total?: number;
 }
 
+/** 保存・削除の結果。失敗時は画面（開いているダイアログ）に出す文言を持つ。 */
+export type ActionResult = { ok: true } | { ok: false; message: string };
+
+const failureMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback;
+
 /**
  * 管理画面CRUDの共通フック。
  * ProductManagement / GalleryManagement / NewsManagement / InquiryManagement で
  * 重複していた fetch・保存・削除・再取得の定型を一元化する。
+ *
+ * - `loading` は初回の読み込み中だけ true（まだ表示する行がない）。
+ * - `refreshing` は保存・削除・ページ送り後の再取得中。行は残したまま進行表示だけ出す。
+ * - 保存・削除の失敗は `{ ok: false, message }` で返し、呼び出し側のダイアログ内に表示する。
  */
-export function useCrudResource<T extends { id: number }>({
+export function useCrudResource<T extends { id: number }, Payload extends object = Record<string, unknown>>({
   endpoint,
   listUrl,
   listKey,
@@ -35,7 +45,8 @@ export function useCrudResource<T extends { id: number }>({
 }: UseCrudResourceOptions) {
   const [items, setItems] = useState<T[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const refreshNoticeRef = useRef<string | undefined>(undefined);
@@ -45,7 +56,7 @@ export function useCrudResource<T extends { id: number }>({
     requestControllerRef.current?.abort();
     const controller = new AbortController();
     requestControllerRef.current = controller;
-    setLoading(true);
+    setFetching(true);
     setError(null);
 
     try {
@@ -57,7 +68,8 @@ export function useCrudResource<T extends { id: number }>({
       );
       if (controller.signal.aborted) return;
 
-      const nextItems = (data[listKey] as T[]) ?? [];
+      const list = data[listKey];
+      const nextItems = Array.isArray(list) ? (list as T[]) : [];
       const nextTotal = typeof data.total === "number" ? data.total : nextItems.length;
       const lastPage = Math.max(1, Math.ceil(nextTotal / pageSize));
 
@@ -80,7 +92,8 @@ export function useCrudResource<T extends { id: number }>({
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = null;
-        setLoading(false);
+        setFetching(false);
+        setLoaded(true);
       }
     }
   }, [endpoint, listUrl, listKey, label, page, pageSize]);
@@ -90,50 +103,52 @@ export function useCrudResource<T extends { id: number }>({
     return () => requestControllerRef.current?.abort();
   }, [refetch]);
 
-  /** 保存（id 指定で更新・省略で作成）。成功で true、失敗は alert 表示して false。 */
+  /** 保存（id 指定で更新・省略で作成）。 */
   const save = useCallback(
-    async (payload: Record<string, unknown>, id?: number): Promise<boolean> => {
+    async (payload: Payload, id?: number): Promise<ActionResult> => {
       try {
         await apiJson(endpoint, {
           method: id ? "PUT" : "POST",
           body: id ? { id, ...payload } : payload,
         });
-        refreshNoticeRef.current = `${label}を保存しました`;
-        if (!id && page !== 1) {
-          setPage(1);
-        } else {
-          await refetch();
-        }
-        return true;
       } catch (error) {
         console.error(`${label}の保存に失敗:`, error);
-        alert(error instanceof Error ? error.message : `${label}の保存に失敗しました`);
-        return false;
+        return { ok: false, message: failureMessage(error, `${label}の保存に失敗しました`) };
       }
+      // 保存は成功している。一覧の更新に失敗しても再送信は促さず、一覧側のエラーに成功を添える。
+      refreshNoticeRef.current = `${label}を保存しました`;
+      if (!id && page !== 1) {
+        setPage(1);
+      } else {
+        await refetch();
+      }
+      return { ok: true };
     },
     [endpoint, label, page, refetch]
   );
 
-  /** 削除。成功で true、失敗は alert 表示して false。 */
+  /** 削除。 */
   const remove = useCallback(
-    async (id: number): Promise<boolean> => {
+    async (id: number): Promise<ActionResult> => {
       try {
         await apiJson(endpoint, { method: "DELETE", body: { id } });
-        refreshNoticeRef.current = `${label}を削除しました`;
-        await refetch();
-        return true;
       } catch (error) {
         console.error(`${label}の削除に失敗:`, error);
-        alert(error instanceof Error ? error.message : `${label}の削除に失敗しました`);
-        return false;
+        return { ok: false, message: failureMessage(error, `${label}の削除に失敗しました`) };
       }
+      refreshNoticeRef.current = `${label}を削除しました`;
+      await refetch();
+      return { ok: true };
     },
     [endpoint, label, refetch]
   );
 
   return {
     items,
-    loading,
+    /** 初回の読み込み中（表示する行がまだない） */
+    loading: fetching && !loaded,
+    /** 再取得中（行は残して進行表示だけ出す） */
+    refreshing: fetching && loaded,
     error,
     retry: refetch,
     save,
@@ -142,6 +157,8 @@ export function useCrudResource<T extends { id: number }>({
       page,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
       setPage,
+      /** ResourceTable の pagination にそのまま渡せるよう同じ関数を別名でも返す */
+      onPageChange: setPage,
     },
   };
 }

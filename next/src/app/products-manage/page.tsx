@@ -15,7 +15,7 @@ export default async function ProductsPage() {
 
   return (
     <AdminPageShell title="商品管理">
-      <ProductManagement session={session} />
+      <ProductManagement role={session.user.role} />
     </AdminPageShell>
   );
 }

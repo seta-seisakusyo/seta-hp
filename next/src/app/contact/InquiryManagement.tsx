@@ -25,7 +25,7 @@ interface InquiryManagementProps {
 }
 
 const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
-  const { items: inquiries, loading, error, retry, remove, pagination } = useCrudResource<Inquiry>({
+  const { items: inquiries, loading, refreshing, error, retry, remove, pagination } = useCrudResource<Inquiry>({
     endpoint: "/api/email",
     listKey: "inquiries",
     label: "問い合わせ",
@@ -36,8 +36,7 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
 
   const { canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
-    useResourceDelete(remove);
+  const deletion = useResourceDelete<Inquiry>(remove);
 
   const columns: ResourceColumn<Inquiry>[] = [
     {
@@ -86,12 +85,9 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
         items={inquiries}
         columns={columns}
         loading={loading}
+        refreshing={refreshing}
         emptyMessage="問い合わせはありません"
-        pagination={{
-          page: pagination.page,
-          totalPages: pagination.totalPages,
-          onPageChange: pagination.setPage,
-        }}
+        pagination={pagination}
         actions={(inquiry) => (
           <ResourceActions
             primaryLabel="詳細"
@@ -99,7 +95,7 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
               setSelectedInquiry(inquiry);
               setDetailDialogOpen(true);
             }}
-            onDelete={canDelete ? () => requestDelete(inquiry.id) : undefined}
+            onDelete={canDelete ? () => deletion.requestDelete(inquiry) : undefined}
           />
         )}
       />
@@ -143,11 +139,9 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
-        submitting={isDeleting}
-        open={deleteDialogOpen}
-        title="問い合わせを削除"
-        onClose={cancelDelete}
-        onConfirm={confirmDelete}
+        {...deletion.dialogProps}
+        label="問い合わせ"
+        itemName={deletion.target ? `${deletion.target.name}さんからの問い合わせ` : null}
       />
     </Box>
   );

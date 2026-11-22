@@ -15,7 +15,7 @@ export default async function GalleryManagePage() {
 
   return (
     <AdminPageShell title="ギャラリー管理">
-      <GalleryManagement session={session} />
+      <GalleryManagement role={session.user.role} />
     </AdminPageShell>
   );
 }
