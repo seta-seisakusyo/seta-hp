@@ -9,6 +9,13 @@ import {
 import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
 import { WORK_PRODUCTS_MAX } from "@/lib/work-constants";
 import { META_DESCRIPTION_MAX, SEO_KEYWORDS_MAX } from "@/lib/seo-keywords";
+import { PRODUCT_MAX_IMAGES } from "@/lib/image-upload-constants";
+import {
+  isCanonicalUploadUrl,
+  storedUploadedImageUrlSchema,
+  UPLOAD_URL_MAX,
+  uploadedImageUrlSchema,
+} from "@/lib/upload-paths";
 
 const nameSchema = z
   .string()
@@ -159,7 +166,14 @@ const tagsSchema = z.union([z.string(), z.array(z.unknown())])
   .transform((tags) => Array.isArray(tags) ? tags.map((tag) => xss(String(tag))).join(",") : xss(tags))
   .pipe(z.string().max(VARCHAR_MAX, { message: `タグは${VARCHAR_MAX}文字以内で入力してください` }))
   .optional();
-const optionalImageSchema = z.string().max(VARCHAR_MAX, { message: "画像URLが長すぎます" }).optional().nullable();
+// 商品・作品の画像はアップロード済みのものだけ。過去データの同一サイト絶対URLは /uploads/... に直す。
+// 作品の画像は空文字で「画像なし」にできる。
+const optionalImageSchema = z.literal("").or(storedUploadedImageUrlSchema).optional().nullable();
+const productImagesSchema = z
+  .array(storedUploadedImageUrlSchema, { error: "商品画像の指定が正しくありません" })
+  .max(PRODUCT_MAX_IMAGES, { message: `商品画像は${PRODUCT_MAX_IMAGES}枚までです` })
+  .optional()
+  .nullable();
 
 // 検索エンジン向けの項目。空文字は「未設定」(null) として保存する。
 const seoKeywordsSchema = z.union([z.string(), z.array(z.unknown())])
@@ -191,8 +205,8 @@ export const SLEEVE_MAX_ALTERNATIVES = 10;
  */
 const sleeveImageSchema = z
   .string()
-  .max(VARCHAR_MAX, { message: "スリーブの画像の指定が長すぎます" })
-  .refine((value) => /^\/uploads\/[^/\\?#]+$/.test(value) || /^file:\d{1,3}$/.test(value), {
+  .max(UPLOAD_URL_MAX, { message: "スリーブの画像の指定が長すぎます" })
+  .refine((value) => isCanonicalUploadUrl(value) || /^file:\d{1,3}$/.test(value), {
     message: "スリーブの画像の指定が正しくありません",
   });
 const sleeveImagesSchema = z
@@ -254,7 +268,7 @@ export const ProductCreateSchema = z.object({
   price: priceSchema,
   category: productCategorySchema,
   tags: tagsSchema,
-  images: z.array(z.string()).optional().nullable(),
+  images: productImagesSchema,
   stock: stockSchema.optional(),
   isPublished: z.boolean().optional(),
   isHeroImage: z.boolean().optional(),
@@ -368,13 +382,7 @@ export const XPostSchema = z.object({
       message: `本文は${X_POST_MAX_LENGTH}文字以内で入力してください`,
     }),
   imageUrls: z
-    .array(
-      z
-        .string()
-        .regex(/^\/uploads\/[A-Za-z0-9._-]+$/, {
-          message: "画像はアップロード済みのものだけ指定できます",
-        })
-    )
+    .array(uploadedImageUrlSchema)
     .max(X_POST_MAX_IMAGES, {
       message: `画像は${X_POST_MAX_IMAGES}枚までです`,
     })

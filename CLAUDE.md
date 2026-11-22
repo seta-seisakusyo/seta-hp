@@ -47,6 +47,8 @@ seta-hp/
 │   │   │   ├── rate-limit.ts    # レート制限（DB共有対応）
 │   │   │   ├── reviewCommentsGuard.ts # レビューAPIガード
 │   │   │   ├── upload-validation.ts # 画像アップロード検証
+│   │   │   ├── upload-paths.ts  # アップロード画像の URL⇔ファイル名と Zod スキーマ（クライアントからも読む）
+│   │   │   ├── upload-storage.ts # 保存先ディレクトリ（唯一の定義）・保存・削除・X 投稿用の読み込み
 │   │   │   ├── validation.ts    # Zodバリデーション（統一済み）
 │   │   │   ├── site-config.ts   # サイトURL・名称・連絡先の定数
 │   │   │   ├── navigation.ts    # ヘッダー・スマホメニュー・フッター共通のリンク定義
