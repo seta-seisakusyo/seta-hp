@@ -8,14 +8,16 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Metadata } from "next";
 import {
-  CONTACT_EMAIL,
   DEFAULT_OG_IMAGE,
+  FAVICON_PATH,
+  SITE_DEFAULT_TITLE,
   SITE_DESCRIPTION,
   SITE_NAME,
+  SITE_NAME_READING,
   SITE_URL,
-  X_PROFILE_URL,
 } from "@/lib/site-config";
-import { serializeJsonLd } from "@/lib/json-ld";
+import JsonLd from "@/components/JsonLd";
+import { buildOrganizationJsonLd } from "@/lib/structured-data";
 import { Cormorant_Garamond, Inter, Inter_Tight, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 
@@ -53,9 +55,12 @@ const notoJp = Noto_Sans_JP({
 
 export const metadata: Metadata = {
   title: {
-    default: `${SITE_NAME} | MLBカード・トレカを美しく飾る`,
+    default: SITE_DEFAULT_TITLE,
     template: `%s | ${SITE_NAME}`,
   },
+  // ここにはサイト共通の既定値だけを置く。canonical・og:url・og:title などページ固有の値は
+  // 各ページが buildPageMetadata（src/lib/metadata.ts）で出す（#417）。
+  // ここで指定すると、指定していないページがトップの値を引き継いでしまう。
   description: SITE_DESCRIPTION,
   keywords: [
     "MLBカード",
@@ -67,29 +72,24 @@ export const metadata: Metadata = {
     "壁面ディスプレイ",
     "カードコレクション",
     "AWARD HISTORY",
-    "飾Love",
-    "かざらぶ",
+    SITE_NAME,
+    SITE_NAME_READING,
     "トレカ",
     "ドジャース",
     "ハンドメイド",
   ],
 
   metadataBase: new URL(SITE_URL),
-  alternates: {
-    canonical: "/",
-  },
 
   icons: {
-    icon: "/kaza-love_favicon.png",
-    apple: "/kaza-love_favicon.png",
+    icon: FAVICON_PATH,
+    apple: FAVICON_PATH,
   },
 
   openGraph: {
     type: "website",
     locale: "ja_JP",
-    url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} | MLBカード・トレカを美しく飾る`,
     description: SITE_DESCRIPTION,
     images: [
       {
@@ -103,7 +103,6 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} | MLBカード・トレカを美しく飾る`,
     description: SITE_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
@@ -121,18 +120,6 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: SITE_NAME,
-  alternateName: "かざらぶ",
-  url: SITE_URL,
-  logo: `${SITE_URL}/kaza-love_logo.png`,
-  description: SITE_DESCRIPTION,
-  email: CONTACT_EMAIL,
-  sameAs: [X_PROFILE_URL],
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -144,10 +131,7 @@ export default function RootLayout({
       className={`${inter.variable} ${interTight.variable} ${cormorant.variable} ${notoJp.variable}`}
     >
       <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
-        />
+        <JsonLd data={buildOrganizationJsonLd()} />
       </head>
       <body>
         <AppRouterCacheProvider>

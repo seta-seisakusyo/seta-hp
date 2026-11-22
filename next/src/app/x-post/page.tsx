@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/metadata";
 import { requireAdminPage } from "@/lib/admin-auth";
 import AdminPageShell from "@/components/manage/AdminPageShell";
 import XPostForm from "./XPostForm";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "X 投稿",
-  robots: { index: false, follow: false },
-};
+  path: "/x-post",
+  noindex: true,
+});
 
 /**
  * X (旧Twitter) への手動投稿ページ。

@@ -134,14 +134,14 @@ export const data: ISection[] = [
       {
         type: "paragraph",
         content: [
-          "サイト名： 飾Love(かざらぶ)",
-          "運営事業者： 瀬田製作所(個人事業所)",
-          "運営責任者： 伊藤 竜次",
-          "所在地： ご請求いただいた方にお知らせいたします",
+          `サイト名： ${SITE_NAME_WITH_READING}`,
+          `運営事業者： ${OPERATOR_INFO.legalName}`,
+          `運営責任者： ${OPERATOR_INFO.representative}`,
+          `所在地： ${OPERATOR_INFO.disclosedOnRequest}`,
           `Eメールアドレス： ${CONTACT_EMAIL}`,
         ],
       },
     ],
   },
 ];
-import { CONTACT_EMAIL } from "@/lib/site-config";
+import { CONTACT_EMAIL, OPERATOR_INFO, SITE_NAME_WITH_READING } from "@/lib/site-config";

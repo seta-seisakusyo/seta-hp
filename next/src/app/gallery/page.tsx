@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { getPrismaClient } from "@/lib/db";
 import { CACHE_REVALIDATE_SECONDS, CACHE_TAGS } from "@/lib/cache-tags";
 import { parsePositiveId } from "@/lib/parse-id";
+import { buildPageMetadata } from "@/lib/metadata";
 import type { WorkGridItem } from "@/lib/types/work";
 import GalleryGrid from "./_components/GalleryGrid";
 import PageHero from "@/components/PageHero";
@@ -13,14 +14,12 @@ import DarkCtaSection from "@/components/DarkCtaSection";
 // リクエスト毎レンダリング + unstable_cache（works タグ）でDBアクセスを抑える。
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "ギャラリー",
   description:
     "飾Love の制作事例ギャラリー。MLB・野球カードのアクリル壁面ディスプレイなど、実際の設置イメージをご覧いただけます。",
-  alternates: {
-    canonical: "/gallery",
-  },
-};
+  path: "/gallery",
+});
 
 // 公開制作事例の全件取得。使用商品は公開中のものだけを含める。
 // 制作事例・商品の書き込み時に works タグで無効化される。

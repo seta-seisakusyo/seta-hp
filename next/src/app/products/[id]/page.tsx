@@ -5,7 +5,8 @@ import type { Metadata } from "next";
 import { parsePositiveId } from "@/lib/parse-id";
 import { getPrismaClient } from "@/lib/db";
 import { buildProductJsonLd, buildBreadcrumbJsonLd } from "@/lib/structured-data";
-import { serializeJsonLd } from "@/lib/json-ld";
+import JsonLd from "@/components/JsonLd";
+import { buildPageMetadata } from "@/lib/metadata";
 import ProductDetail from "./_components/ProductDetail";
 import RelatedProducts from "./_components/RelatedProducts";
 import ProductShowcaseWorks from "./_components/ProductShowcaseWorks";
@@ -15,7 +16,6 @@ import SectionContainer from "@/components/SectionContainer";
 import DarkCtaSection from "@/components/DarkCtaSection";
 import { getPrimaryProductImage } from "@/lib/types/product";
 import { splitSeoKeywords } from "@/lib/seo-keywords";
-import { DEFAULT_OG_IMAGE } from "@/lib/site-config";
 
 // ISR: ビルド時は生成せず（CIビルドはDB到達不可のため generateStaticParams は空）、
 // 初回アクセス時に生成してキャッシュする。商品の作成・更新・削除時は
@@ -84,26 +84,16 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   // 検索結果の説明文は専用の metaDescription を優先し、未設定なら商品説明を使う。
   const description = product.metaDescription || product.description;
   const keywords = splitSeoKeywords(product.seoKeywords);
-  const image = getPrimaryProductImage(product.images) ?? DEFAULT_OG_IMAGE;
+  // 画像がない商品は既定の OG 画像（buildPageMetadata の既定値）を使う。
+  const image = getPrimaryProductImage(product.images) ?? undefined;
   return {
-    title: product.name,
-    description,
+    ...buildPageMetadata({
+      title: product.name,
+      description,
+      path: `/products/${product.id}`,
+      image,
+    }),
     ...(keywords.length > 0 ? { keywords } : {}),
-    alternates: { canonical: `/products/${product.id}` },
-    openGraph: {
-      type: "website",
-      title: product.name,
-      description,
-      url: `/products/${product.id}`,
-      images: [image],
-    },
-    // X は twitter 側が未指定だと layout の既定カードを使うため、商品の内容で上書きする。
-    twitter: {
-      card: "summary_large_image",
-      title: product.name,
-      description,
-      images: [image],
-    },
   };
 }
 
@@ -124,14 +114,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
-      />
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       <Box sx={{ bgcolor: "#FFFFFF" }}>
         <SectionContainer sx={{ py: { xs: 4, md: 5 } }}>
           <ProductDetail product={product} />

@@ -4,14 +4,15 @@ import type { ReactNode } from "react";
 import DarkCtaSection from "@/components/DarkCtaSection";
 import PageHero from "@/components/PageHero";
 import SectionContainer from "@/components/SectionContainer";
+import { buildPageMetadata } from "@/lib/metadata";
 import { FONT_DISPLAY, FONT_ITALIC, PHRASE_WRAP_SX } from "@/theme/themeConstants";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "製品の特長",
   description:
     "飾Love のアクリルディスプレイは、アクリル一枚とマグネットだけのシンプルな構造。フルプロテクトスリーブやお手持ちのスリーブ、100円ショップのマグネットローダーにも対応し、壁掛け・卓上どちらでも飾れます。",
-  alternates: { canonical: "/features" },
-};
+  path: "/features",
+});
 
 interface Feature {
   title: ReactNode;

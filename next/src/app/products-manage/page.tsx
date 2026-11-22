@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/metadata";
 import { requireEditorPage } from "@/lib/admin-auth";
 import AdminPageShell from "@/components/manage/AdminPageShell";
 import ProductManagement from "./ProductManagement";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "商品管理",
-  robots: { index: false, follow: false },
-};
+  path: "/products-manage",
+  noindex: true,
+});
 
 export default async function ProductsPage() {
   const session = await requireEditorPage();

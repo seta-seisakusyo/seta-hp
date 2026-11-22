@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import LegalPageLayout from "../_legal/LegalPageLayout";
+import { buildPageMetadata } from "@/lib/metadata";
+import { MADE_TO_ORDER_SHIPPING_NOTE } from "@/lib/site-config";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPageMetadata({
   title: "配送・返品について",
   description:
     "飾Love の配送方法・お届け日数・返品についてご案内します。商品は BASE または Amazon からご購入いただけます。",
-  alternates: { canonical: "/shipping" },
-};
+  path: "/shipping",
+});
 
 export default function ShippingPage() {
   return (
@@ -35,7 +37,7 @@ export default function ShippingPage() {
 
       <h2>お届け日数</h2>
       <p>
-        商品は受注生産のため、発送日はご注文後にメールでご連絡いたします。
+        商品は{MADE_TO_ORDER_SHIPPING_NOTE}
         お急ぎの場合は、ご注文前に<Link href="/contact">お問い合わせ</Link>ください。
       </p>
 
