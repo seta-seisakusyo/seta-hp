@@ -112,6 +112,11 @@ export function getProductInquiryHref(productName: string): string {
   return `/contact?product=${encodeURIComponent(productName)}`;
 }
 
+/** ギャラリー作品のタイトルをお問い合わせフォームへ引き継ぐURL */
+export function getWorkInquiryHref(workTitle: string): string {
+  return `/contact?display=${encodeURIComponent(workTitle)}`;
+}
+
 export function getPrimaryProductImage(images: unknown): string | null {
   return parseProductImages(images)[0] ?? null;
 }
