@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleApiError, isErrorResponse, parseAdminJson } from "@/lib/api-utils";
 import { enforceRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { getXPostUrl } from "@/lib/site-config";
 import { XPostSchema } from "@/lib/validation";
 import { getXCredentials, postToX, uploadMedia } from "@/lib/x-client";
 import { readUploadedImage } from "@/lib/upload-storage";
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       postId: result.postId,
-      url: result.postId ? `https://x.com/kaza_love_/status/${result.postId}` : undefined,
+      url: result.postId ? getXPostUrl(result.postId) : undefined,
     });
   } catch (error) {
     return handleApiError(error, {

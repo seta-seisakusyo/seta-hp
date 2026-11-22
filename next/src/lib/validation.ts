@@ -6,7 +6,7 @@ import {
   VALID_PRODUCT_CATEGORIES,
   VALID_STOCK_OPTIONS,
 } from "@/lib/constants/categories";
-import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
+import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH, xWeightedLength } from "@/lib/x-constants";
 import { WORK_PRODUCTS_MAX } from "@/lib/work-constants";
 import { META_DESCRIPTION_MAX, SEO_KEYWORDS_MAX } from "@/lib/seo-keywords";
 import { PRODUCT_MAX_IMAGES } from "@/lib/image-upload-constants";
@@ -378,8 +378,9 @@ export const XPostSchema = z.object({
   text: z
     .string({ error: "本文は必須です" })
     .min(1, { message: "本文は必須です" })
-    .max(X_POST_MAX_LENGTH, {
-      message: `本文は${X_POST_MAX_LENGTH}文字以内で入力してください`,
+    // X と同じ数え方（日本語などは2、URL は23）で上限を見る。
+    .refine((text) => xWeightedLength(text) <= X_POST_MAX_LENGTH, {
+      message: `本文は${X_POST_MAX_LENGTH}文字以内（日本語は${X_POST_MAX_LENGTH / 2}文字以内）で入力してください`,
     }),
   imageUrls: z
     .array(uploadedImageUrlSchema)

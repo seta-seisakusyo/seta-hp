@@ -6,6 +6,14 @@ export const CONTACT_EMAIL = "info@kaza-love.com";
 
 export const X_PROFILE_URL = "https://x.com/kaza_love_";
 
+/** X のアカウント名（"@" 付き）。X_PROFILE_URL の末尾から作る。 */
+export const X_HANDLE = `@${X_PROFILE_URL.replace(/\/+$/, "").split("/").pop()}`;
+
+/** X の投稿 ID から投稿の URL を作る。 */
+export function getXPostUrl(postId: string): string {
+  return `${X_PROFILE_URL.replace(/\/+$/, "")}/status/${encodeURIComponent(postId)}`;
+}
+
 export const SITE_DESCRIPTION =
   "MLB・野球カードコレクターのためのアクリルディスプレイ工房。大谷翔平 AWARD HISTORY 風の壁面展示をはじめ、レーザー加工で一つ一つ丁寧に製作。";
 
