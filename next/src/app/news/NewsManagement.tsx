@@ -2,10 +2,9 @@
 
 import { Box, TextField, Typography } from "@mui/material";
 import dayjs from "dayjs";
-import { Session } from "next-auth";
 import { useCallback } from "react";
+import type { z } from "zod";
 import DeleteConfirmDialog from "@/components/manage/DeleteConfirmDialog";
-import ResourceActions from "@/components/manage/ResourceActions";
 import FormDialog from "@/components/manage/FormDialog";
 import ResourceTable, { type ResourceColumn } from "@/components/manage/ResourceTable";
 import { useCrudResource } from "@/lib/hooks/useCrudResource";
@@ -13,10 +12,17 @@ import { useResourceDelete } from "@/lib/hooks/useResourceDelete";
 import { useResourceEditor } from "@/lib/hooks/useResourceEditor";
 import { getManagementPermissions } from "@/lib/management-permissions";
 import { getNewsText, type News } from "@/lib/types/news";
+import type { UserRole } from "@/lib/roles";
+import type { NewsCreateSchema } from "@/lib/validation";
+
+const LABEL = "お知らせ";
 
 interface NewsManagementProps {
-  session: Session;
+  role: UserRole;
 }
+
+/** 送信内容。項目名・型は API のスキーマ（NewsCreateSchema）に合わせる */
+type NewsPayload = z.input<typeof NewsCreateSchema>;
 
 interface NewsForm {
   title: string;
@@ -39,24 +45,29 @@ const editNewsForm = (news: News): NewsForm => ({
   url: news.url || "",
 });
 
-const NewsManagement: React.FC<NewsManagementProps> = ({ session }) => {
-  const { items: newsList, loading, error, retry, save, remove, pagination } = useCrudResource<News>({
-    endpoint: "/api/news",
-    listKey: "news",
-    label: "お知らせ",
-    pageSize: 10,
-  });
+const toNewsPayload = (form: NewsForm): NewsPayload => ({
+  title: form.title,
+  contents: { text: form.contents },
+  date: form.date,
+  url: form.url || null,
+});
 
-  const { canEdit, canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
-    useResourceDelete(remove);
+const NewsManagement: React.FC<NewsManagementProps> = ({ role }) => {
+  const { items: newsList, loading, refreshing, error, retry, save, remove, pagination } =
+    useCrudResource<News, NewsPayload>({
+      endpoint: "/api/news",
+      listKey: "news",
+      label: LABEL,
+      pageSize: 10,
+    });
 
-  const saveNews = useCallback((form: NewsForm, id?: number) => save({
-    title: form.title,
-    contents: { text: form.contents },
-    date: form.date,
-    url: form.url || null,
-  }, id), [save]);
+  const { canEdit, canDelete } = getManagementPermissions(role);
+  const deletion = useResourceDelete<News>(remove);
+
+  const saveNews = useCallback(
+    (form: NewsForm, id?: number) => save(toNewsPayload(form), id),
+    [save]
+  );
   const editor = useResourceEditor<News, NewsForm>({
     createForm: createNewsForm,
     editForm: editNewsForm,
@@ -103,75 +114,39 @@ const NewsManagement: React.FC<NewsManagementProps> = ({ session }) => {
         items={newsList}
         columns={columns}
         loading={loading}
-        emptyMessage="お知らせはありません"
-        pagination={{
-          page: pagination.page,
-          totalPages: pagination.totalPages,
-          onPageChange: pagination.setPage,
-        }}
+        refreshing={refreshing}
+        emptyMessage={`${LABEL}はありません`}
+        pagination={pagination}
         onCreate={canEdit ? editor.openCreate : undefined}
-        actions={
-          canEdit
-            ? (news) => (
-                <ResourceActions
-                  primaryLabel="編集"
-                  onPrimary={() => editor.openEdit(news)}
-                  onDelete={canDelete ? () => requestDelete(news.id) : undefined}
-                />
-              )
-            : undefined
-        }
+        onEdit={canEdit ? editor.openEdit : undefined}
+        onDelete={canDelete ? deletion.requestDelete : undefined}
+        editLabel="編集"
+        actionMode="button"
       />
 
       {/* 作成/編集ダイアログ */}
       <FormDialog
-        submitting={editor.isSaving}
-        open={editor.dialogOpen}
-        title={editor.selectedResource ? "お知らせ編集" : "お知らせ新規作成"}
-        submitLabel={editor.selectedResource ? "更新" : "作成"}
+        {...editor.dialogProps}
+        label={LABEL}
         submitDisabled={!editor.form.title || !editor.form.contents || !editor.form.date}
-        onClose={editor.close}
-        onSubmit={editor.submit}
       >
         <TextField
           label="日付"
           type="date"
-          value={editor.form.date}
-          onChange={(e) => editor.setField("date", e.target.value)}
+          {...editor.text("date")}
           fullWidth
           InputLabelProps={{ shrink: true }}
         />
-        <TextField
-          label="タイトル"
-          value={editor.form.title}
-          onChange={(e) => editor.setField("title", e.target.value)}
-          fullWidth
-          required
-        />
-        <TextField
-          label="内容"
-          value={editor.form.contents}
-          onChange={(e) => editor.setField("contents", e.target.value)}
-          fullWidth
-          multiline
-          rows={4}
-          required
-        />
-        <TextField
-          label="リンクURL（任意）"
-          value={editor.form.url}
-          onChange={(e) => editor.setField("url", e.target.value)}
-          fullWidth
-        />
+        <TextField label="タイトル" {...editor.text("title")} fullWidth required />
+        <TextField label="内容" {...editor.text("contents")} fullWidth multiline rows={4} required />
+        <TextField label="リンクURL（任意）" {...editor.text("url")} fullWidth />
       </FormDialog>
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
-        submitting={isDeleting}
-        open={deleteDialogOpen}
-        title="お知らせを削除"
-        onClose={cancelDelete}
-        onConfirm={confirmDelete}
+        {...deletion.dialogProps}
+        label={LABEL}
+        itemName={deletion.target?.title}
       />
     </Box>
   );

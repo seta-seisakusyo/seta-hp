@@ -15,7 +15,7 @@ export default async function NewsPage() {
 
   return (
     <AdminPageShell title="お知らせ管理">
-      <NewsManagement session={session} />
+      <NewsManagement role={session.user.role} />
     </AdminPageShell>
   );
 }

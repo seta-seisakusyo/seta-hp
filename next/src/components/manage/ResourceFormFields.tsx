@@ -9,14 +9,65 @@ import {
   Switch,
   TextField,
 } from "@mui/material";
+import { useId } from "react";
 
-interface CategoryOption {
+interface SelectOption {
   readonly value: string;
   readonly label: string;
 }
 
+interface SelectFieldProps {
+  label: string;
+  value: string;
+  options: readonly SelectOption[];
+  onChange: (value: string) => void;
+}
+
+/** 管理フォームの選択欄（カテゴリ・在庫状況など） */
+export function SelectField({ label, value, options, onChange }: SelectFieldProps) {
+  const labelId = useId();
+  return (
+    <FormControl fullWidth>
+      <InputLabel id={labelId}>{label}</InputLabel>
+      <Select
+        labelId={labelId}
+        value={value}
+        label={label}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+}
+
+interface SwitchFieldProps {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+/** 管理フォームのオン/オフ欄（公開する・ヒーロー画像に使用など） */
+export function SwitchField({ label, checked, onChange }: SwitchFieldProps) {
+  return (
+    <FormControlLabel
+      control={
+        <Switch
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+      }
+      label={label}
+    />
+  );
+}
+
 interface CategoryAndTagsFieldsProps {
-  categories: readonly CategoryOption[];
+  categories: readonly SelectOption[];
   category: string;
   tags: string;
   tagPlaceholder: string;
@@ -34,20 +85,12 @@ export function CategoryAndTagsFields({
 }: CategoryAndTagsFieldsProps) {
   return (
     <>
-      <FormControl fullWidth>
-        <InputLabel>カテゴリ</InputLabel>
-        <Select
-          value={category}
-          label="カテゴリ"
-          onChange={(event) => onCategoryChange(event.target.value)}
-        >
-          {categories.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <SelectField
+        label="カテゴリ"
+        value={category}
+        options={categories}
+        onChange={onCategoryChange}
+      />
       <TextField
         label="タグ（カンマ区切り）"
         value={tags}
@@ -68,15 +111,5 @@ export function ResourcePublishedField({
   checked,
   onChange,
 }: ResourcePublishedFieldProps) {
-  return (
-    <FormControlLabel
-      control={
-        <Switch
-          checked={checked}
-          onChange={(event) => onChange(event.target.checked)}
-        />
-      }
-      label="公開する"
-    />
-  );
+  return <SwitchField label="公開する" checked={checked} onChange={onChange} />;
 }

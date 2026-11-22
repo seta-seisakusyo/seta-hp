@@ -1,33 +1,26 @@
 "use client";
 
-import {
-  Chip,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
-  Switch,
-  TextField,
-  Typography,
-  Box,
-} from "@mui/material";
-import { Session } from "next-auth";
+import { Chip, TextField, Typography, Box } from "@mui/material";
 import { useCallback } from "react";
+import type { z } from "zod";
 import MultiImageUpload from "@/components/MultiImageUpload";
 import DeleteConfirmDialog from "@/components/manage/DeleteConfirmDialog";
-import ResourceActions from "@/components/manage/ResourceActions";
 import FormDialog from "@/components/manage/FormDialog";
-import ProductSleeveFields, {
+import ProductSleeveFields from "./ProductSleeveFields";
+import {
   emptySleeveForm,
   toSleeveForm,
   toSleevePayload,
   type SleeveForm,
-} from "./ProductSleeveFields";
+  type SleevePayload,
+} from "@/lib/product-sleeve-form";
 import {
   CategoryAndTagsFields,
   ResourcePublishedField,
+  SelectField,
+  SwitchField,
 } from "@/components/manage/ResourceFormFields";
+import { PublishedChip, ResourceNameCell } from "@/components/manage/ResourceCells";
 import ResourceTable, { type ResourceColumn } from "@/components/manage/ResourceTable";
 import { useCrudResource } from "@/lib/hooks/useCrudResource";
 import { useResourceDelete } from "@/lib/hooks/useResourceDelete";
@@ -41,11 +34,23 @@ import {
   getStockMeta,
 } from "@/lib/constants/categories";
 import { parseProductImages, parseProductSleeve, type Product } from "@/lib/types/product";
+import type { UserRole } from "@/lib/roles";
+import type { ProductCreateSchema } from "@/lib/validation";
 import { META_DESCRIPTION_MAX } from "@/lib/seo-keywords";
 
+const LABEL = "商品";
+
 interface ProductManagementProps {
-  session: Session;
+  role: UserRole;
 }
+
+/**
+ * 送信内容。項目名・型は API のスキーマ（ProductCreateSchema）に合わせる。
+ * スリーブの数値欄だけは誤入力を API の検証で弾かせるため文字列も送る（SleevePayload）。
+ */
+type ProductPayload = Omit<z.input<typeof ProductCreateSchema>, "sleeve"> & {
+  sleeve: SleevePayload | null;
+};
 
 interface ProductForm {
   name: string;
@@ -98,36 +103,41 @@ const editProductForm = (product: Product): ProductForm => ({
   sleeve: toSleeveForm(parseProductSleeve(product.sleeve)),
 });
 
-const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
-  const { items: products, loading, error, retry, save, remove, pagination } = useCrudResource<Product>({
-    endpoint: "/api/products",
-    listUrl: "/api/products?includeUnpublished=true",
-    listKey: "products",
-    label: "商品",
-    pageSize: 50,
-  });
+const toProductPayload = (form: ProductForm): ProductPayload => ({
+  name: form.name,
+  description: form.description,
+  price: Number(form.price),
+  category: form.category,
+  tags: form.tags,
+  images: form.images.length > 0 ? form.images : null,
+  stock: form.stock,
+  isPublished: form.isPublished,
+  isHeroImage: form.isHeroImage,
+  purchaseUrl: form.purchaseUrl || null,
+  amazonUrl: form.amazonUrl || null,
+  seoKeywords: form.seoKeywords || null,
+  metaDescription: form.metaDescription || null,
+  sleeve: toSleevePayload(form.sleeve),
+});
+
+const ProductManagement: React.FC<ProductManagementProps> = ({ role }) => {
+  const { items: products, loading, refreshing, error, retry, save, remove, pagination } =
+    useCrudResource<Product, ProductPayload>({
+      endpoint: "/api/products",
+      listUrl: "/api/products?includeUnpublished=true",
+      listKey: "products",
+      label: LABEL,
+      pageSize: 50,
+    });
   const isMobile = useIsMobile();
 
-  const { canEdit, canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
-    useResourceDelete(remove);
+  const { canEdit, canDelete } = getManagementPermissions(role);
+  const deletion = useResourceDelete<Product>(remove);
 
-  const saveProduct = useCallback((form: ProductForm, id?: number) => save({
-    name: form.name,
-    description: form.description,
-    price: Number(form.price),
-    category: form.category,
-    tags: form.tags,
-    images: form.images.length > 0 ? form.images : null,
-    stock: form.stock,
-    isPublished: form.isPublished,
-    isHeroImage: form.isHeroImage,
-    purchaseUrl: form.purchaseUrl || null,
-    amazonUrl: form.amazonUrl || null,
-    seoKeywords: form.seoKeywords || null,
-    metaDescription: form.metaDescription || null,
-    sleeve: toSleevePayload(form.sleeve),
-  }, id), [save]);
+  const saveProduct = useCallback(
+    (form: ProductForm, id?: number) => save(toProductPayload(form), id),
+    [save]
+  );
   const editor = useResourceEditor<Product, ProductForm>({
     createForm: createProductForm,
     editForm: editProductForm,
@@ -138,16 +148,10 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
     {
       header: "商品名",
       render: (product) => (
-        <>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {product.name}
-          </Typography>
-          {isMobile && (
-            <Typography variant="caption" color="text.secondary">
-              {getProductCategoryLabel(product.category)}
-            </Typography>
-          )}
-        </>
+        <ResourceNameCell
+          name={product.name}
+          caption={isMobile ? getProductCategoryLabel(product.category) : null}
+        />
       ),
     },
     {
@@ -178,13 +182,7 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
     },
     {
       header: "公開",
-      render: (product) => (
-        <Chip
-          label={product.isPublished ? "公開" : "非公開"}
-          size="small"
-          color={product.isPublished ? "primary" : "default"}
-        />
-      ),
+      render: (product) => <PublishedChip published={product.isPublished} />,
     },
   ];
 
@@ -196,58 +194,27 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
         items={products}
         columns={columns}
         loading={loading}
-        emptyMessage="商品がありません"
-        pagination={{
-          page: pagination.page,
-          totalPages: pagination.totalPages,
-          onPageChange: pagination.setPage,
-        }}
+        refreshing={refreshing}
+        emptyMessage={`${LABEL}がありません`}
+        pagination={pagination}
         onCreate={canEdit ? editor.openCreate : undefined}
-        actions={
-          canEdit
-            ? (product) => (
-                <ResourceActions
-                  mode="icon"
-                  primaryLabel="商品を編集"
-                  onPrimary={() => editor.openEdit(product)}
-                  onDelete={canDelete ? () => requestDelete(product.id) : undefined}
-                />
-              )
-            : undefined
-        }
+        onEdit={canEdit ? editor.openEdit : undefined}
+        onDelete={canDelete ? deletion.requestDelete : undefined}
+        editLabel={`${LABEL}を編集`}
       />
 
       {/* 作成/編集ダイアログ */}
       <FormDialog
-        submitting={editor.isSaving}
-        open={editor.dialogOpen}
-        title={editor.selectedResource ? "商品を編集" : "商品を作成"}
-        submitLabel={editor.selectedResource ? "更新" : "作成"}
+        {...editor.dialogProps}
+        label={LABEL}
         submitDisabled={!editor.form.name || !editor.form.description || !editor.form.price}
-        onClose={editor.close}
-        onSubmit={editor.submit}
       >
-        <TextField
-          label="商品名"
-          value={editor.form.name}
-          onChange={(e) => editor.setField("name", e.target.value)}
-          fullWidth
-          required
-        />
-        <TextField
-          label="説明"
-          value={editor.form.description}
-          onChange={(e) => editor.setField("description", e.target.value)}
-          fullWidth
-          multiline
-          rows={3}
-          required
-        />
+        <TextField label="商品名" {...editor.text("name")} fullWidth required />
+        <TextField label="説明" {...editor.text("description")} fullWidth multiline rows={3} required />
         <TextField
           label="価格（税込）"
           type="number"
-          value={editor.form.price}
-          onChange={(e) => editor.setField("price", e.target.value)}
+          {...editor.text("price")}
           fullWidth
           required
           InputProps={{ startAdornment: <Typography sx={{ mr: 1 }}>¥</Typography> }}
@@ -269,46 +236,34 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
             onChange={(images) => editor.setField("images", images)}
           />
         </Box>
-        <FormControl fullWidth>
-          <InputLabel>在庫状況</InputLabel>
-          <Select
-            value={editor.form.stock}
-            label="在庫状況"
-            onChange={(e) => editor.setField("stock", e.target.value)}
-          >
-            {STOCK_OPTIONS.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <SelectField
+          label="在庫状況"
+          value={editor.form.stock}
+          options={STOCK_OPTIONS}
+          onChange={(stock) => editor.setField("stock", stock)}
+        />
         <TextField
           label="購入URL（BASE等の外部ショップURL）"
-          value={editor.form.purchaseUrl}
-          onChange={(e) => editor.setField("purchaseUrl", e.target.value)}
+          {...editor.text("purchaseUrl")}
           fullWidth
           placeholder="https://example.thebase.in/items/..."
         />
         <TextField
           label="Amazon購入URL（任意）"
-          value={editor.form.amazonUrl}
-          onChange={(e) => editor.setField("amazonUrl", e.target.value)}
+          {...editor.text("amazonUrl")}
           fullWidth
           placeholder="https://www.amazon.co.jp/dp/..."
           helperText="入力すると商品ページに「Amazon で購入する」ボタンが表示されます"
         />
         <TextField
           label="SEOキーワード（任意・カンマ区切り）"
-          value={editor.form.seoKeywords}
-          onChange={(e) => editor.setField("seoKeywords", e.target.value)}
+          {...editor.text("seoKeywords")}
           fullWidth
           placeholder="カードディスプレイ, トレカ 飾る, MLB カード"
         />
         <TextField
           label="検索結果の説明文（任意）"
-          value={editor.form.metaDescription}
-          onChange={(e) => editor.setField("metaDescription", e.target.value)}
+          {...editor.text("metaDescription")}
           fullWidth
           multiline
           minRows={2}
@@ -331,25 +286,18 @@ const ProductManagement: React.FC<ProductManagementProps> = ({ session }) => {
           checked={editor.form.isPublished}
           onChange={(isPublished) => editor.setField("isPublished", isPublished)}
         />
-        <FormControlLabel
-          control={
-            <Switch
-              checked={editor.form.isHeroImage}
-              onChange={(e) => editor.setField("isHeroImage", e.target.checked)}
-            />
-          }
+        <SwitchField
           label="TOPヒーロー画像に使用"
+          checked={editor.form.isHeroImage}
+          onChange={(isHeroImage) => editor.setField("isHeroImage", isHeroImage)}
         />
       </FormDialog>
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
-        submitting={isDeleting}
-        open={deleteDialogOpen}
-        title="商品を削除"
-        message="この商品を削除してもよろしいですか？"
-        onClose={cancelDelete}
-        onConfirm={confirmDelete}
+        {...deletion.dialogProps}
+        label={LABEL}
+        itemName={deletion.target?.name}
       />
     </Box>
   );

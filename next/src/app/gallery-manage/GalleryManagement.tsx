@@ -1,16 +1,16 @@
 "use client";
 
 import { Box, Chip, TextField, Typography } from "@mui/material";
-import { Session } from "next-auth";
 import { useCallback } from "react";
+import type { z } from "zod";
 import ImageUpload from "@/components/ImageUpload";
 import DeleteConfirmDialog from "@/components/manage/DeleteConfirmDialog";
-import ResourceActions from "@/components/manage/ResourceActions";
 import FormDialog from "@/components/manage/FormDialog";
 import {
   CategoryAndTagsFields,
   ResourcePublishedField,
 } from "@/components/manage/ResourceFormFields";
+import { PublishedChip, ResourceNameCell } from "@/components/manage/ResourceCells";
 import ResourceTable, { type ResourceColumn } from "@/components/manage/ResourceTable";
 import { useCrudResource } from "@/lib/hooks/useCrudResource";
 import { useResourceDelete } from "@/lib/hooks/useResourceDelete";
@@ -19,11 +19,18 @@ import { getManagementPermissions } from "@/lib/management-permissions";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { GALLERY_CATEGORIES, getGalleryCategoryLabel } from "@/lib/constants/categories";
 import type { ManagedWork } from "@/lib/types/work";
+import type { UserRole } from "@/lib/roles";
+import type { WorkCreateSchema } from "@/lib/validation";
 import WorkProductsField from "./WorkProductsField";
 
+const LABEL = "作品";
+
 interface GalleryManagementProps {
-  session: Session;
+  role: UserRole;
 }
+
+/** 送信内容。項目名・型は API のスキーマ（WorkCreateSchema）に合わせる */
+type WorkPayload = z.input<typeof WorkCreateSchema>;
 
 interface WorkForm {
   title: string;
@@ -55,29 +62,34 @@ const editWorkForm = (work: ManagedWork): WorkForm => ({
   productIds: work.productIds ?? [],
 });
 
-const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
-  const { items: works, loading, error, retry, save, remove, pagination } = useCrudResource<ManagedWork>({
-    endpoint: "/api/works",
-    listUrl: "/api/works?includeUnpublished=true",
-    listKey: "works",
-    label: "作品",
-    pageSize: 50,
-  });
+const toWorkPayload = (form: WorkForm): WorkPayload => ({
+  title: form.title,
+  description: form.description,
+  category: form.category,
+  tags: form.tags,
+  image: form.image || null,
+  isPublished: form.isPublished,
+  productIds: form.productIds,
+});
+
+const GalleryManagement: React.FC<GalleryManagementProps> = ({ role }) => {
+  const { items: works, loading, refreshing, error, retry, save, remove, pagination } =
+    useCrudResource<ManagedWork, WorkPayload>({
+      endpoint: "/api/works",
+      listUrl: "/api/works?includeUnpublished=true",
+      listKey: "works",
+      label: LABEL,
+      pageSize: 50,
+    });
   const isMobile = useIsMobile();
 
-  const { canEdit, canDelete } = getManagementPermissions(session?.user?.role);
-  const { deleteDialogOpen, requestDelete, cancelDelete, confirmDelete, isDeleting } =
-    useResourceDelete(remove);
+  const { canEdit, canDelete } = getManagementPermissions(role);
+  const deletion = useResourceDelete<ManagedWork>(remove);
 
-  const saveWork = useCallback((form: WorkForm, id?: number) => save({
-    title: form.title,
-    description: form.description,
-    category: form.category,
-    tags: form.tags,
-    image: form.image || null,
-    isPublished: form.isPublished,
-    productIds: form.productIds,
-  }, id), [save]);
+  const saveWork = useCallback(
+    (form: WorkForm, id?: number) => save(toWorkPayload(form), id),
+    [save]
+  );
   const editor = useResourceEditor<ManagedWork, WorkForm>({
     createForm: createWorkForm,
     editForm: editWorkForm,
@@ -88,16 +100,10 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
     {
       header: "タイトル",
       render: (work) => (
-        <>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {work.title}
-          </Typography>
-          {isMobile && (
-            <Typography variant="caption" color="text.secondary">
-              {getGalleryCategoryLabel(work.category)}
-            </Typography>
-          )}
-        </>
+        <ResourceNameCell
+          name={work.title}
+          caption={isMobile ? getGalleryCategoryLabel(work.category) : null}
+        />
       ),
     },
     {
@@ -117,13 +123,7 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
     },
     {
       header: "公開",
-      render: (work) => (
-        <Chip
-          label={work.isPublished ? "公開" : "非公開"}
-          size="small"
-          color={work.isPublished ? "primary" : "default"}
-        />
-      ),
+      render: (work) => <PublishedChip published={work.isPublished} />,
     },
   ];
 
@@ -135,53 +135,23 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
         items={works}
         columns={columns}
         loading={loading}
-        emptyMessage="作品がありません"
-        pagination={{
-          page: pagination.page,
-          totalPages: pagination.totalPages,
-          onPageChange: pagination.setPage,
-        }}
+        refreshing={refreshing}
+        emptyMessage={`${LABEL}がありません`}
+        pagination={pagination}
         onCreate={canEdit ? editor.openCreate : undefined}
-        actions={
-          canEdit
-            ? (work) => (
-                <ResourceActions
-                  mode="icon"
-                  primaryLabel="作品を編集"
-                  onPrimary={() => editor.openEdit(work)}
-                  onDelete={canDelete ? () => requestDelete(work.id) : undefined}
-                />
-              )
-            : undefined
-        }
+        onEdit={canEdit ? editor.openEdit : undefined}
+        onDelete={canDelete ? deletion.requestDelete : undefined}
+        editLabel={`${LABEL}を編集`}
       />
 
       {/* 作成/編集ダイアログ */}
       <FormDialog
-        submitting={editor.isSaving}
-        open={editor.dialogOpen}
-        title={editor.selectedResource ? "作品を編集" : "作品を追加"}
-        submitLabel={editor.selectedResource ? "更新" : "追加"}
+        {...editor.dialogProps}
+        label={LABEL}
         submitDisabled={!editor.form.title || !editor.form.description}
-        onClose={editor.close}
-        onSubmit={editor.submit}
       >
-        <TextField
-          label="タイトル"
-          value={editor.form.title}
-          onChange={(e) => editor.setField("title", e.target.value)}
-          fullWidth
-          required
-        />
-        <TextField
-          label="説明"
-          value={editor.form.description}
-          onChange={(e) => editor.setField("description", e.target.value)}
-          fullWidth
-          multiline
-          rows={3}
-          required
-        />
+        <TextField label="タイトル" {...editor.text("title")} fullWidth required />
+        <TextField label="説明" {...editor.text("description")} fullWidth multiline rows={3} required />
         <CategoryAndTagsFields
           categories={GALLERY_CATEGORIES}
           category={editor.form.category}
@@ -211,12 +181,9 @@ const GalleryManagement: React.FC<GalleryManagementProps> = ({ session }) => {
 
       {/* 削除確認ダイアログ */}
       <DeleteConfirmDialog
-        submitting={isDeleting}
-        open={deleteDialogOpen}
-        title="作品を削除"
-        message="この作品を削除してもよろしいですか？"
-        onClose={cancelDelete}
-        onConfirm={confirmDelete}
+        {...deletion.dialogProps}
+        label={LABEL}
+        itemName={deletion.target?.title}
       />
     </Box>
   );

@@ -1,78 +1,7 @@
 "use client";
 
 import { Box, Button, TextField, Typography } from "@mui/material";
-import type { ProductSleeve, ProductSleeveItem } from "@/lib/types/product";
-
-/** 対応スリーブの入力値（テキスト欄のため文字列で持つ） */
-export interface SleeveForm {
-  name: string;
-  maker: string;
-  widthMm: string;
-  heightMm: string;
-  thicknessMm: string;
-  count: string;
-  discount: string;
-  /**
-   * 設計ツールから登録した画像とほかの対応スリーブ。この画面では編集せず、保存時にそのまま送る
-   * (管理画面で保存しても消えないように)。
-   */
-  images: string[];
-  alternatives: ProductSleeveItem[];
-}
-
-export const emptySleeveForm = (): SleeveForm => ({
-  name: "",
-  maker: "",
-  widthMm: "",
-  heightMm: "",
-  thicknessMm: "",
-  count: "",
-  discount: "",
-  images: [],
-  alternatives: [],
-});
-
-const text = (value: number | string | null) => (value === null ? "" : String(value));
-
-export const toSleeveForm = (sleeve: ProductSleeve | null): SleeveForm =>
-  sleeve
-    ? {
-        name: sleeve.name,
-        maker: text(sleeve.maker),
-        widthMm: text(sleeve.widthMm),
-        heightMm: text(sleeve.heightMm),
-        thicknessMm: text(sleeve.thicknessMm),
-        count: text(sleeve.count),
-        discount: text(sleeve.discount),
-        images: sleeve.images,
-        alternatives: sleeve.alternatives,
-      }
-    : emptySleeveForm();
-
-// 空欄は未設定（null）。数値にならない入力はそのまま送り、API の検証メッセージを表示させる
-// （JSON 化すると NaN が null に化けて、誤入力が黙って消えるのを避ける）。
-const numberOrNull = (value: string): number | string | null => {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const parsed = Number(trimmed);
-  return Number.isNaN(parsed) ? trimmed : parsed;
-};
-
-/** API へ送る値。名前が空なら対応スリーブの登録を消す（null） */
-export const toSleevePayload = (form: SleeveForm) =>
-  form.name.trim()
-    ? {
-        name: form.name.trim(),
-        maker: form.maker.trim() || null,
-        widthMm: numberOrNull(form.widthMm),
-        heightMm: numberOrNull(form.heightMm),
-        thicknessMm: numberOrNull(form.thicknessMm),
-        count: numberOrNull(form.count),
-        discount: numberOrNull(form.discount),
-        images: form.images,
-        alternatives: form.alternatives,
-      }
-    : null;
+import type { SleeveForm, SleeveTextKey } from "@/lib/product-sleeve-form";
 
 interface Props {
   value: SleeveForm;
@@ -81,9 +10,9 @@ interface Props {
 
 /** 商品編集の「対応スリーブ」欄。設計ツールから登録した商品は設計のスリーブが入る */
 export default function ProductSleeveFields({ value, onChange }: Props) {
-  const field = (key: keyof SleeveForm) => ({
+  const field = (key: SleeveTextKey) => ({
     value: value[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...value, [key]: e.target.value }),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange({ ...value, [key]: e.target.value }),
   });
 
   return (
