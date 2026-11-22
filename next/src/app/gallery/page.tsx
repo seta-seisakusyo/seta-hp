@@ -9,6 +9,7 @@ import type { WorkGridItem } from "@/lib/types/work";
 import GalleryGrid from "./_components/GalleryGrid";
 import PageHero from "@/components/PageHero";
 import DarkCtaSection from "@/components/DarkCtaSection";
+import EmptyState from "@/components/EmptyState";
 
 // CIビルド時はDBに到達できないため静的生成はせず、
 // リクエスト毎レンダリング + unstable_cache（works タグ）でDBアクセスを抑える。
@@ -76,7 +77,12 @@ export default async function GalleryPage({ searchParams }: GalleryPageProps) {
           { value: "Solo", label: "One maker" },
         ]}
       />
-      <GalleryGrid works={works} initialWorkId={initialWorkId} />
+      {/* 作品がないときはサーバー側で空表示だけを出し、クライアント部品を描画しない */}
+      {works.length === 0 ? (
+        <EmptyState title="作品を準備中" description="撮影が完了次第、順次掲載していきます。" />
+      ) : (
+        <GalleryGrid works={works} initialWorkId={initialWorkId} />
+      )}
       <DarkCtaSection
         heading={
           <>
