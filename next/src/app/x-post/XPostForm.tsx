@@ -15,8 +15,8 @@ import {
 import SendIcon from "@mui/icons-material/Send";
 import MultiImageUpload from "@/components/MultiImageUpload";
 import { apiJson } from "@/lib/api-client";
-import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH } from "@/lib/x-constants";
-import { X_PROFILE_URL } from "@/lib/site-config";
+import { X_POST_MAX_IMAGES, X_POST_MAX_LENGTH, xWeightedLength } from "@/lib/x-constants";
+import { X_HANDLE, X_PROFILE_URL } from "@/lib/site-config";
 
 interface XPostResponse {
   postId?: string;
@@ -33,7 +33,8 @@ export default function XPostForm() {
   const [error, setError] = useState<string | null>(null);
   const [posted, setPosted] = useState<XPostResponse | null>(null);
 
-  const remaining = X_POST_MAX_LENGTH - text.length;
+  // X と同じ数え方（日本語・絵文字は2、URL は23）で残りを出す。
+  const remaining = useMemo(() => X_POST_MAX_LENGTH - xWeightedLength(text), [text]);
   const tooLong = remaining < 0;
   const isEmpty = text.trim().length === 0;
   const containsUrl = useMemo(() => URL_PATTERN.test(text), [text]);
@@ -62,7 +63,7 @@ export default function XPostForm() {
       <Alert severity="info" sx={{ mb: 3 }}>
         投稿先は{" "}
         <MuiLink href={X_PROFILE_URL} target="_blank" rel="noopener noreferrer">
-          @kaza_love_
+          {X_HANDLE}
         </MuiLink>{" "}
         です。送信すると即座に公開され、取り消しは X 側でしか行えません。
       </Alert>
