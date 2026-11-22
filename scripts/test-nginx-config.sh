@@ -92,6 +92,24 @@ if ! grep -Fq 'limit_req_zone $api_write_key zone=api_write:10m rate=120r/m;' "$
   exit 1
 fi
 
+# 管理ページと X 投稿API は管理エリアのIP制限（admin_allow.inc）を通る（#405）。
+admin_pages_block="$(awk '/location ~ \^\/\(products-manage\|/{capture=1} capture{print} capture && /^    }/{exit}' <<< "$site_block")"
+for page in products-manage gallery-manage news x-post; do
+  if ! grep -Eq "^    location ~ \^/\(([a-z-]+\|)*${page}(\|[a-z-]+)*\)" <<< "$admin_pages_block"; then
+    echo "管理ページ /${page} が管理エリアのIP制限に含まれていません" >&2
+    exit 1
+  fi
+done
+if ! grep -Fq 'include /etc/nginx/conf.d/admin_allow.inc;' <<< "$admin_pages_block"; then
+  echo "管理ページの location に admin_allow.inc がありません" >&2
+  exit 1
+fi
+x_post_block="$(awk '/location = \/api\/x\/post \{/{capture=1} capture{print} capture && /^    }/{exit}' <<< "$site_block")"
+if ! grep -Fq 'include /etc/nginx/conf.d/admin_allow.inc;' <<< "$x_post_block"; then
+  echo "/api/x/post が管理エリアのIP制限（admin_allow.inc）を通っていません" >&2
+  exit 1
+fi
+
 echo "Nginx HTTPS config and Designer auth boundary: OK"
 
 # --- レート制限の実挙動（#338）---

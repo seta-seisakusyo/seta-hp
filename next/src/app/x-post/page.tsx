@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireAdminPage } from "@/lib/admin-auth";
 import AdminPageShell from "@/components/manage/AdminPageShell";
 import XPostForm from "./XPostForm";
 
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
  * 投稿は外部への発信で取り消しが効かないため、EDITOR ではなく ADMIN 限定。
  */
 export default async function XPostPage() {
-  await requireAdmin();
+  await requireAdminPage();
 
   return (
     <AdminPageShell title="X 投稿">

@@ -182,8 +182,9 @@ server {
     # ADMIN_ALLOWED_IPS 未設定時は admin_allow.inc が "allow all;" となり制限なし。
     # 管理ページ＋ログイン/登録ページ（#251: 一般ユーザーのログイン運用が無いため
     # 認証エリアごと制限し、攻撃者はログイン試行自体が不可能）。
-    # アプリ側 middleware / requireAdminOrEditor と併せて三層防御。
-    location ~ ^/(products-manage|gallery-manage|news|login|register)(/|\$) {
+    # アプリ側 middleware（next/src/middleware.ts の MANAGE_ROUTES）/ ページの
+    # requireEditorPage・requireAdminPage と併せて三層防御。管理ページを増やしたら両方に加える。
+    location ~ ^/(products-manage|gallery-manage|news|x-post|login|register)(/|\$) {
         include /etc/nginx/conf.d/admin_allow.inc;
         limit_req zone=general burst=20 nodelay;
         proxy_pass http://next_app:3000;
@@ -234,6 +235,16 @@ server {
         limit_req zone=api burst=10 nodelay;
         proxy_pass http://next_app:3000;
         include /etc/nginx/conf.d/proxy_headers.inc;
+    }
+
+    # X 投稿API（ADMIN のみ・取り消せない外部発信）も管理APIとしてIP制限（#405）
+    location = /api/x/post {
+        include /etc/nginx/conf.d/admin_allow.inc;
+        limit_req zone=api burst=10 nodelay;
+        proxy_pass http://next_app:3000;
+        include /etc/nginx/conf.d/proxy_headers.inc;
+
+        include /etc/nginx/conf.d/proxy_timeouts.inc;
     }
 
     # ユーザー登録APIもIP制限（#251: ログインと同じく一般利用なし）

@@ -43,7 +43,8 @@ seta-hp/
 │   │   │   ├── api-response.ts  # APIレスポンスヘルパー
 │   │   │   ├── api-utils.ts     # API認可（requireEditor/requireAdmin）+ JSON検証
 │   │   │   ├── managed-resource-route.ts # 管理リソースの一覧・削除共通処理
-│   │   │   ├── admin-auth.ts    # 管理ページの認可
+│   │   │   ├── admin-auth.ts    # 管理ページの認可（requireEditorPage/requireAdminPage）
+│   │   │   ├── manage-routes.ts # 管理ページと必要な権限の表（MANAGE_ROUTES、middleware が使う）
 │   │   │   ├── rate-limit.ts    # レート制限（DB共有対応）
 │   │   │   ├── reviewCommentsGuard.ts # レビューAPIガード
 │   │   │   ├── upload-validation.ts # 画像アップロード検証
@@ -53,12 +54,12 @@ seta-hp/
 │   │   │   ├── site-config.ts   # サイトURL・名称・連絡先の定数
 │   │   │   ├── navigation.ts    # ヘッダー・スマホメニュー・フッター共通のリンク定義
 │   │   │   ├── x-client.ts      # X API クライアント
-│   │   │   ├── auth.ts          # NextAuth初期化
+│   │   │   ├── auth.config.ts   # NextAuth共通設定（Cookie・JWT・pages・JWT→session）。middleware も使うので DB 等を import しない
+│   │   │   ├── auth.ts          # NextAuth初期化（providers・PrismaAdapter・DBを使うcallback）
 │   │   │   └── db.ts            # Prismaクライアント
 │   │   ├── __tests__/       # Vitest
-│   │   └── theme/           # MUIテーマ設定
-│   ├── middleware.ts        # 管理ページの認証・権限チェック
-│   ├── auth.config.ts       # NextAuth設定（providers, callbacks）
+│   │   ├── theme/           # MUIテーマ設定
+│   │   └── middleware.ts    # 管理ページの認証・権限チェック（src/app があるので src 直下に置く。直下以外では読み込まれない）
 │   ├── prisma/              # Prismaスキーマ・migration・シード
 │   ├── scripts/             # create-admin.sh（管理者ユーザー作成）
 │   └── public/              # 静的ファイル
@@ -133,7 +134,7 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 | `/gallery-manage` | ギャラリー管理 |
 | `/works-manage` | 互換URL（`next.config.ts` の redirects で `/gallery-manage` へリダイレクト） |
 | `/news` | お知らせ管理（公開ページでの表示はない） |
-| `/x-post` | X（旧Twitter）への手動投稿（**ADMIN のみ**。外部発信で取り消せないため EDITOR 不可） |
+| `/x-post` | X（旧Twitter）への手動投稿（**ADMIN のみ**。外部発信で取り消せないため EDITOR 不可。middleware・ページ・API の各層で ADMIN を確認し、Nginx の管理エリアIP制限にも `/x-post`・`/api/x/post` を含める） |
 
 ## Database Models
 
@@ -202,9 +203,11 @@ ADMIN_EMAIL=... ADMIN_PASSWORD=... npx prisma db seed # 管理者ユーザーを
 API の認可とJSON検証は `src/lib/api-utils.ts` の `parseEditorJson` / `parseAdminJson` を使う。
 
 ### 管理エリアの防御（多層）
-1. Nginx: `ADMIN_ALLOWED_IPS` による IP 制限
-2. `next/middleware.ts`: `/products-manage` `/gallery-manage` `/news` で未認証はログインへ、権限不足はトップへ
-3. ページ・API 側の `requireAdmin` / `requireEditor` 等による認可
+1. Nginx: `ADMIN_ALLOWED_IPS` による IP 制限（管理ページ・`/api/x/post`・ログイン/登録・認証API 等。未設定なら制限なし）
+2. `next/src/middleware.ts`: `MANAGE_ROUTES`（`src/lib/manage-routes.ts`）の表で判定し、未認証はログインへ、権限不足はトップへ。`/products-manage` `/gallery-manage` `/news` は ADMIN/EDITOR、`/x-post` は ADMIN のみ。Edge ランタイムで動くので `src/lib/auth.config.ts`（DB なし）だけで NextAuth を作り、JWT Cookie を読む
+3. ページ側の `requireEditorPage` / `requireAdminPage`（`src/lib/admin-auth.ts`、リダイレクト）と API 側の `requireEditor` / `requireAdmin`（`src/lib/api-utils.ts`、エラー応答）による認可
+
+管理ページを増やすときは `MANAGE_ROUTES`・middleware の `config.matcher`（静的リテラルのみ可。表との一致は `src/__tests__/middleware.test.ts` が確認）・`nginx/docker-entrypoint.sh` の管理エリアの location・ページのガードをそろえる。セッション Cookie の名前・ドメイン（SSO）・JWT の有効期限は `auth.config.ts` にだけ書く（middleware と本体で食い違うと middleware がセッションを読めない）。
 
 ### Validation
 - Zodスキーマに統一 (`src/lib/validation.ts`、レビューコメントは `src/lib/review-validation.ts`)
