@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { jsonRequest, prismaError, roleCases, sessionFor } from "../helpers/api";
 
 const mocks = vi.hoisted(() => ({
@@ -32,6 +32,13 @@ beforeEach(() => {
   mocks.inquiry.create.mockResolvedValue({ id: 1, createdAt: new Date() });
   mocks.sendMail.mockResolvedValue({});
   vi.spyOn(console, "error").mockImplementation(() => {});
+  // SMTP_USER が未設定だと mailer は送信前に止まる（#409）。送信の成否を試すため設定しておく。
+  vi.stubEnv("SMTP_USER", "smtp@example.com");
+  vi.stubEnv("CONTACT_TO_EMAIL", "");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("問い合わせ一覧（GET）", () => {
