@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdminOrEditor } from "@/lib/admin-auth";
+import { requireEditorPage } from "@/lib/admin-auth";
 import AdminPageShell from "@/components/manage/AdminPageShell";
 import NewsManagement from "./NewsManagement";
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewsPage() {
-  const session = await requireAdminOrEditor();
+  const session = await requireEditorPage();
 
   return (
     <AdminPageShell title="お知らせ管理">

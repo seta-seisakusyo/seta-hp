@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdminOrEditor } from "@/lib/admin-auth";
+import { requireEditorPage } from "@/lib/admin-auth";
 import AdminPageShell from "@/components/manage/AdminPageShell";
 import GalleryManagement from "./GalleryManagement";
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GalleryManagePage() {
-  const session = await requireAdminOrEditor();
+  const session = await requireEditorPage();
 
   return (
     <AdminPageShell title="ギャラリー管理">
